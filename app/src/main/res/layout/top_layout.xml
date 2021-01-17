@@ -12,7 +12,7 @@
                 android:id="@+id/connect_button"
                 style="@style/Base.Widget.AppCompat.Button.Borderless"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="36dp"
                 android:layout_centerVertical="true"
                 android:text="@string/connect"
                 android:textColor="@android:color/white" />
@@ -28,11 +28,9 @@
                     android:id="@+id/satellites"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
+                    android:layout_margin="6dp"
                     android:drawableStart="@drawable/ic_satellite"
                     android:drawablePadding="4dp"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp"
                     android:gravity="center_horizontal"
                     android:text="-"
                     android:textColor="@android:color/white"
@@ -45,9 +43,10 @@
                     android:id="@+id/fuel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
+                    android:layout_margin="6dp"
                     android:drawableStart="@drawable/ic_battery_unknown"
                     android:gravity="center_horizontal"
+                    android:drawablePadding="0dp"
                     android:text="-"
                     android:textColor="@android:color/white"
                     android:textSize="16sp"
@@ -58,7 +57,7 @@
                     android:id="@+id/current"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
+                    android:layout_margin="6dp"
                     android:drawableStart="@drawable/ic_current"
                     android:drawablePadding="4dp"
                     android:gravity="center_horizontal"
@@ -72,7 +71,7 @@
                     android:id="@+id/voltage"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
+                    android:layout_margin="6dp"
                     android:drawableStart="@drawable/ic_voltage"
                     android:drawablePadding="4dp"
                     android:gravity="center_horizontal"
@@ -81,6 +80,17 @@
                     android:textSize="16sp"
                     app:minText="0,00 V"
                     app:iconWidthDp="29"/>
+
+            <TextView
+                    android:id="@+id/phone_battery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="6dp"
+                    android:drawableStart="@drawable/ic_phone_battery"
+                    android:drawablePadding="0dp"
+                    android:text="-"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
 
         </com.nex3z.flowlayout.FlowLayout>
 
@@ -91,10 +101,34 @@
                 android:layout_centerVertical="true"
                 android:layout_marginEnd="8dp"
                 android:layout_marginRight="8dp"
-                android:layout_toStartOf="@+id/settings_button"
-                android:layout_toLeftOf="@+id/settings_button"
+                android:layout_toStartOf="@+id/fullscreen_button"
+                android:layout_toLeftOf="@+id/fullscreen_button"
                 android:background="?selectableItemBackground"
                 android:src="@drawable/ic_replay" />
+
+        <ImageView
+                android:id="@id/fullscreen_button"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="8dp"
+                android:layout_marginRight="8dp"
+                android:layout_toStartOf="@+id/layout_button"
+                android:layout_toLeftOf="@+id/layout_button"
+                android:background="?selectableItemBackground"
+                android:src="@drawable/ic_fullscreen" />
+
+        <ImageView
+                android:id="@id/layout_button"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_toStartOf="@+id/settings_button"
+                android:layout_toLeftOf="@+id/settings_button"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="8dp"
+                android:layout_marginRight="8dp"
+                android:background="?selectableItemBackground"
+                android:src="@drawable/ic_layout" />
 
         <ImageView
                 android:id="@id/settings_button"
