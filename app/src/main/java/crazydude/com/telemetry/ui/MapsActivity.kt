@@ -16,9 +16,9 @@ import android.net.Uri
 import android.os.*
 import android.text.Html
 import android.text.method.LinkMovementMethod
+import android.util.Log
 import android.util.TypedValue
-import android.view.View
-import android.view.WindowManager
+import android.view.*
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -1317,4 +1317,35 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         dialog.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
     }
 
+    //listed gamepad buttons
+    override fun dispatchKeyEvent (event: KeyEvent) : Boolean {
+        var handled = false
+        var knownCodes = intArrayOf(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_X, KeyEvent.KEYCODE_BUTTON_Y, KeyEvent.KEYCODE_BUTTON_SELECT);
+        if (event.source and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD) {
+            if ( event.action== KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                Log.d("GAMEPAD","Event code=" + event.keyCode);
+
+                if ( event.keyCode in knownCodes) {
+                    handled = true;
+                }
+            }
+            if (handled) {
+                return true
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    //listen gamepad sticks and d-pad
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK) {
+            Log.d("GAMEPAD","X=" + event.getAxisValue(MotionEvent.AXIS_X));
+            Log.d("GAMEPAD","Y=" + event.getAxisValue(MotionEvent.AXIS_Y));
+            Log.d("GAMEPAD","Z=" + event.getAxisValue(MotionEvent.AXIS_Z));
+            Log.d("GAMEPAD","RZ=" + event.getAxisValue(MotionEvent.AXIS_RZ));
+            Log.d("GAMEPAD","HAT_X=" + event.getAxisValue(MotionEvent.AXIS_HAT_X));
+            Log.d("GAMEPAD","HAT_Y=" + event.getAxisValue(MotionEvent.AXIS_HAT_Y));
+        }
+        return false;
+    }
 }
