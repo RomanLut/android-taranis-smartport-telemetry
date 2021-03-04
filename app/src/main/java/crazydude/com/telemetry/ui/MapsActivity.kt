@@ -36,6 +36,7 @@ import com.serenegiant.usbcameratest4.CameraFragment
 import crazydude.com.telemetry.R
 import crazydude.com.telemetry.converter.Converter
 import crazydude.com.telemetry.converter.KmhToMphConverter
+import crazydude.com.telemetry.manager.GamepadRC
 import crazydude.com.telemetry.manager.PreferenceManager
 import crazydude.com.telemetry.maps.MapLine
 import crazydude.com.telemetry.maps.MapMarker
@@ -134,6 +135,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             }
         }
     }
+
+    private var gamepadRC : GamepadRC = GamepadRC();
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
