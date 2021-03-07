@@ -262,14 +262,9 @@ class GamepadRC : RCChannels{
             arrayOf( ButtonActionButtonToggleChannel2(13, 1000,1900)))
     )
 
-    private val KEYCODE_DPAD_UP : Int = 1000;
-    private val KEYCODE_DPAD_DOWN : Int = 1001;
-    private val KEYCODE_DPAD_LEFT : Int = 1002;
-    private val KEYCODE_DPAD_RIGHT : Int = 1003;
-
     private val buttonNames: Map<Int,String> = mapOf(
         KeyEvent.KEYCODE_BUTTON_A to "Button A",
-        KeyEvent.KEYCODE_BUTTON_X to "Button X",
+        KeyEvent.KEYCODE_BUTTON_B to "Button B",
         KeyEvent.KEYCODE_BUTTON_Y to "Button Y",
         KeyEvent.KEYCODE_BUTTON_X to "Button X",
         KeyEvent.KEYCODE_BUTTON_SELECT to "Select",
@@ -279,11 +274,11 @@ class GamepadRC : RCChannels{
         KeyEvent.KEYCODE_BUTTON_R1 to "Right Bumper",
         KeyEvent.KEYCODE_BUTTON_L1 to "Left Bumper",
         KeyEvent.KEYCODE_BUTTON_R2 to "Right Trigger",
-        KeyEvent.KEYCODE_BUTTON_L1 to "Left Trigger",
-        KEYCODE_DPAD_UP to "DPad UP",
-        KEYCODE_DPAD_DOWN to "DPad DOWN",
-        KEYCODE_DPAD_LEFT to "DPad LEFT",
-        KEYCODE_DPAD_RIGHT to "DPad RIGHT"
+        KeyEvent.KEYCODE_BUTTON_L2 to "Left Trigger",
+        KeyEvent.KEYCODE_DPAD_UP to "DPad UP",
+        KeyEvent.KEYCODE_DPAD_DOWN to "DPad DOWN",
+        KeyEvent.KEYCODE_DPAD_LEFT to "DPad LEFT",
+        KeyEvent.KEYCODE_DPAD_RIGHT to "DPad RIGHT"
     );
 
     public fun getButtonName( code: Int ) : String {
@@ -319,7 +314,7 @@ class GamepadRC : RCChannels{
     }
 
     private fun handleButtonPress( keyCode : Int) : Boolean {
-        Log.d("GAMEPAD","HandlebuttonPress: KeyEvent code=" + keyCode);
+        Log.d("GAMEPAD","HandlebuttonPress: KeyEvent code=" + keyCode + ", name=" + this.buttonNames.get((keyCode)));
 
         var handled = false;
         for ( bp in this.buttonPresets)
@@ -354,27 +349,29 @@ class GamepadRC : RCChannels{
             Log.d("GAMEPAD","RZ=" + event.getAxisValue(MotionEvent.AXIS_RZ));
             Log.d("GAMEPAD","HAT_X=" + event.getAxisValue(MotionEvent.AXIS_HAT_X));
             Log.d("GAMEPAD","HAT_Y=" + event.getAxisValue(MotionEvent.AXIS_HAT_Y));
+            Log.d("GAMEPAD","LT=" + event.getAxisValue(MotionEvent.AXIS_LTRIGGER));
+            Log.d("GAMEPAD","RT=" + event.getAxisValue(MotionEvent.AXIS_RTRIGGER));
 
             var DPadButton : Int = -1;
             val xaxis: Float = event.getAxisValue(MotionEvent.AXIS_HAT_X)
             val yaxis: Float = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
 
-            if ( xaxis.compareTo(-1.0f) == 0 ) DPadButton = KeyEvent.KEYCODE_DPAD_DOWN_LEFT
+            if ( xaxis.compareTo(-1.0f) == 0 ) DPadButton = KeyEvent.KEYCODE_DPAD_LEFT
             else if (xaxis.compareTo(1.0f) == 0 ) DPadButton = KeyEvent.KEYCODE_DPAD_RIGHT
             else if ( yaxis.compareTo(-1.0f) == 0 ) DPadButton = KeyEvent.KEYCODE_DPAD_UP
             else if ( yaxis.compareTo(1.0f) == 0 ) DPadButton = KeyEvent.KEYCODE_DPAD_DOWN;
 
             if ( lastDPadButton != DPadButton) {
                 lastDPadButton = DPadButton;
-                return this.handleButtonPress( DPadButton );
+                if (DPadButton!=-1) this.handleButtonPress( DPadButton );
+                return true;
             }
 
             val axes : IntArray = intArrayOf(MotionEvent.AXIS_X, MotionEvent.AXIS_Y, MotionEvent.AXIS_Z, MotionEvent.AXIS_RZ);
             axes.forEach{ a -> this.handleAxis( a, event.getAxisValue( a )) }
         }
 
-
-        return false;
+        return true;
     }
 
 

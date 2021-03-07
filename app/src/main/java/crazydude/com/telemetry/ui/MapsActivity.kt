@@ -1322,33 +1322,12 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
     //listed gamepad buttons
     override fun dispatchKeyEvent (event: KeyEvent) : Boolean {
-        var handled = false
-        var knownCodes = intArrayOf(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_X, KeyEvent.KEYCODE_BUTTON_Y, KeyEvent.KEYCODE_BUTTON_SELECT);
-        if (event.source and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD) {
-            if ( event.action== KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                Log.d("GAMEPAD","Event code=" + event.keyCode);
-
-                if ( event.keyCode in knownCodes) {
-                    handled = true;
-                }
-            }
-            if (handled) {
-                return true
-            }
-        }
+        if ( this.gamepadRC.handleKeyEvent(event)) return true;
         return super.dispatchKeyEvent(event);
     }
 
     //listen gamepad sticks and d-pad
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
-        if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK) {
-            Log.d("GAMEPAD","X=" + event.getAxisValue(MotionEvent.AXIS_X));
-            Log.d("GAMEPAD","Y=" + event.getAxisValue(MotionEvent.AXIS_Y));
-            Log.d("GAMEPAD","Z=" + event.getAxisValue(MotionEvent.AXIS_Z));
-            Log.d("GAMEPAD","RZ=" + event.getAxisValue(MotionEvent.AXIS_RZ));
-            Log.d("GAMEPAD","HAT_X=" + event.getAxisValue(MotionEvent.AXIS_HAT_X));
-            Log.d("GAMEPAD","HAT_Y=" + event.getAxisValue(MotionEvent.AXIS_HAT_Y));
-        }
-        return false;
+        return this.gamepadRC.handleGenericMotionEvent( event );
     }
 }
