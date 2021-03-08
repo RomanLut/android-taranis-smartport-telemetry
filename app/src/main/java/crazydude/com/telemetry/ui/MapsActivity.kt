@@ -6,6 +6,7 @@ import android.app.ProgressDialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.*
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
@@ -35,7 +36,6 @@ import com.nex3z.flowlayout.FlowLayout
 import com.serenegiant.usbcameratest4.CameraFragment
 import crazydude.com.telemetry.R
 import crazydude.com.telemetry.converter.Converter
-import crazydude.com.telemetry.converter.KmhToMphConverter
 import crazydude.com.telemetry.manager.GamepadRC
 import crazydude.com.telemetry.manager.PreferenceManager
 import crazydude.com.telemetry.maps.MapLine
@@ -96,10 +96,11 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     private lateinit var rootLayout: CoordinatorLayout
     private lateinit var mapHolder: FrameLayout
     private lateinit var videoHolder: AspectFrameLayout
+    private lateinit var rc_widget : RCWidget
 
     private lateinit var mCameraFragment : com.serenegiant.usbcameratest4.CameraFragment
 
-    private lateinit var sensorViewMap: HashMap<String, TextView>
+    private lateinit var sensorViewMap: HashMap<String, View>
     private lateinit var sensorsConverters: HashMap<String, Converter>
 
     private lateinit var preferenceManager: PreferenceManager
@@ -174,6 +175,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         bottomList = findViewById(R.id.bottom_list)
         mapHolder = findViewById(R.id.map_holder)
         videoHolder = findViewById(R.id.viewHolder)
+        rc_widget = findViewById(R.id.rc_widget)
 
         videoHolder.setAspectRatio(640.0/480)
 
@@ -185,7 +187,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             Pair(PreferenceManager.sensors.elementAt(4).name, speed),
             Pair(PreferenceManager.sensors.elementAt(5).name, distance),
             Pair(PreferenceManager.sensors.elementAt(6).name, altitude),
-            Pair(PreferenceManager.sensors.elementAt(7).name, phoneBattery)
+            Pair(PreferenceManager.sensors.elementAt(7).name, phoneBattery),
+            Pair(PreferenceManager.sensors.elementAt(8).name, rc_widget)
         )
 
         firebaseAnalytics = FirebaseAnalytics.getInstance(this)
@@ -256,6 +259,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
         updateWindowFullscreenDecoration()
 
+        updateScreenOrientation()
+
         this.registerReceiver(this.batInfoReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED));
     }
 
@@ -286,7 +291,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     private fun initOSMMap() {
         val mapView = org.osmdroid.views.MapView(this)
         mapHolder.addView(mapView)
-        map = OsmMapWrapper(applicationContext, mapView)
+        map = OsmMapWrapper(applicationContext, mapView) {
+            initHeadingLine()
+        }
         map?.setOnCameraMoveStartedListener {
             followMode = false
         }
@@ -325,11 +332,27 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 followMode = false
             }
             map?.setPadding(0, topLayout.measuredHeight, 0, 0)
+            initHeadingLine()
         }
         if (simulateLifecycle) {
             map?.onCreate(null)
             map?.onStart()
             map?.onResume()
+        }
+    }
+
+    private fun initHeadingLine() {
+        polyLine?.let { it.color = preferenceManager.getRouteColor() }
+        if (!isIdle()) {
+            if (preferenceManager.isHeadingLineEnabled() && headingPolyline == null) {
+                headingPolyline = createHeadingPolyline()
+                updateHeading()
+            } else if (!preferenceManager.isHeadingLineEnabled() && headingPolyline != null) {
+                headingPolyline?.remove()
+                headingPolyline = null
+            }
+            headingPolyline?.let { it.color = preferenceManager.getHeadLineColor() }
+            marker?.setIcon(R.drawable.ic_plane, preferenceManager.getPlaneColor())
         }
     }
 
@@ -630,18 +653,6 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     override fun onStart() {
         super.onStart()
         map?.onStart()
-        polyLine?.let { it.color = preferenceManager.getRouteColor() }
-        if (!isIdle()) {
-            headingPolyline?.let { it.color = preferenceManager.getHeadLineColor() }
-            if (preferenceManager.isHeadingLineEnabled() && headingPolyline == null) {
-                headingPolyline = createHeadingPolyline()
-                updateHeading()
-            } else if (!preferenceManager.isHeadingLineEnabled() && headingPolyline != null) {
-                headingPolyline?.remove()
-                headingPolyline = null
-            }
-            marker?.setIcon(R.drawable.ic_plane, preferenceManager.getPlaneColor())
-        }
         if (preferenceManager.showArtificialHorizonView()) {
             horizonView.visibility = View.VISIBLE
         } else {
@@ -660,7 +671,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     }
 
     private fun updateSensorsPlacement() {
-        val sensorsSettings = preferenceManager.getSensorsSettings()
+        val sensorsSettings = preferenceManager.getSensorsSettings().sortedBy { it.index }
         topList.removeAllViews()
         bottomList.removeAllViews()
         sensorsSettings.forEach {
@@ -752,7 +763,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     override fun onResume() {
         super.onResume()
         map?.onResume()
-        updateWindowFullscreenDecoration();
+        updateWindowFullscreenDecoration()
+        updateScreenOrientation()
     }
 
     override fun onPause() {
@@ -1007,7 +1019,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     }
 
     private fun updateSpeed(speed: Float) {
-        this.speed.text = "${KmhToMphConverter().convert(speed).roundToInt()} km/h"
+        this.speed.text = "${speed.roundToInt()} km/h"
     }
 
     override fun onGPSState(satellites: Int, gpsFix: Boolean) {
@@ -1320,14 +1332,27 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         dialog.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
     }
 
+    protected fun updateScreenOrientation() {
+        val screenRotation : String = preferenceManager.getScreenOrientationLock()
+        requestedOrientation = when (screenRotation) {
+            "Portrait" -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            "Landscape" -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            else -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
     //listed gamepad buttons
     override fun dispatchKeyEvent (event: KeyEvent) : Boolean {
         if ( this.gamepadRC.handleKeyEvent(event)) return true;
         return super.dispatchKeyEvent(event);
+
+
     }
 
     //listen gamepad sticks and d-pad
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         return this.gamepadRC.handleGenericMotionEvent( event );
     }
+
+
 }

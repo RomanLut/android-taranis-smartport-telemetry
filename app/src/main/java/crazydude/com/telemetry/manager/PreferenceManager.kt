@@ -20,7 +20,8 @@ class PreferenceManager(context: Context) {
             SensorSetting("Speed", 0, "bottom"),
             SensorSetting("Distance", 1, "bottom"),
             SensorSetting("Altitude", 2, "bottom"),
-            SensorSetting("Phone Battery", 4)
+            SensorSetting("Phone Battery", 4),
+            SensorSetting("RC Channels", 3, "bottom")
         )
     }
 
@@ -143,6 +144,10 @@ class PreferenceManager(context: Context) {
 
     fun setFullscreenWindow( state: Boolean ) {
         sharedPreferences.edit().putBoolean("fullscreen_window", state).apply()
+    }
+
+    fun getScreenOrientationLock() : String {
+        return sharedPreferences.getString("screen_orientation_lock", "No") ?: "No"
     }
 
 }
