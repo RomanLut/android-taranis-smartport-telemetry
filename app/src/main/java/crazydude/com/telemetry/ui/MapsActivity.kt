@@ -38,6 +38,7 @@ import crazydude.com.telemetry.R
 import crazydude.com.telemetry.converter.Converter
 import crazydude.com.telemetry.manager.GamepadRC
 import crazydude.com.telemetry.manager.PreferenceManager
+import crazydude.com.telemetry.manager.RCChannels
 import crazydude.com.telemetry.maps.MapLine
 import crazydude.com.telemetry.maps.MapMarker
 import crazydude.com.telemetry.maps.MapWrapper
@@ -54,7 +55,7 @@ import kotlin.collections.ArrayList
 import kotlin.math.roundToInt
 
 //class MapsActivity : AppCompatActivity(), DataDecoder.Listener {
-class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener {
+class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener, GamepadRC.Callback {
 
     companion object {
         private const val REQUEST_ENABLE_BT: Int = 0
@@ -260,6 +261,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         updateWindowFullscreenDecoration()
 
         updateScreenOrientation()
+
+        this.rc_widget.setChannels( this.gamepadRC.getChannels() )
+        this.gamepadRC.registerCallback(this)
 
         this.registerReceiver(this.batInfoReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED));
     }
@@ -1352,6 +1356,11 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     //listen gamepad sticks and d-pad
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         return this.gamepadRC.handleGenericMotionEvent( event );
+    }
+
+    override fun onChannelValueChanged(instance: RCChannels, channelIndex : Int, channelValue : Int)
+    {
+        this.rc_widget.setChannels( instance.getChannels() );
     }
 
 

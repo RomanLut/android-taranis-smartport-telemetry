@@ -1,39 +1,46 @@
 package crazydude.com.telemetry.manager
 
-import android.util.Log
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
+import java.util.*
+import kotlin.math.roundToInt
 
 interface RCChannels {
     fun getCount() : Int
     fun get(channel : Int) : Int
     fun set(channel : Int, value : Int)
     fun isValidChannel( channel : Int ) : Boolean
+    fun getChannels() : IntArray;
 }
 
 class GamepadRC : RCChannels{
 
     private val RC_CHANNELS_COUNT : Int = 16;
-    public var rcChannels : IntArray = IntArray(RC_CHANNELS_COUNT);
+    private var rcChannels : IntArray = IntArray(RC_CHANNELS_COUNT);
 
     override fun getCount() : Int {
         return RC_CHANNELS_COUNT
     }
 
-    override fun get(channel : Int) : Int {
-        return rcChannels[channel]
+    override fun get(channelIndex : Int) : Int {
+        return rcChannels[channelIndex]
     }
 
-    override fun set(channel : Int, value : Int)  {
-        if ( rcChannels[channel] != value ){
-            rcChannels[channel] = value;
-            //onRCChannelValueChange();
+    override fun set(channelIndex : Int, value : Int)  {
+        if ( rcChannels[channelIndex] != value ){
+            rcChannels[channelIndex] = value;
+            this.callback?.onChannelValueChanged( this, channelIndex, value );
         }
     }
 
-    override fun isValidChannel( channel : Int) : Boolean {
-        return channel >=0 && channel < this.getCount();
+    override fun isValidChannel(channelIndex : Int) : Boolean {
+        return channelIndex >=0 && channelIndex < this.getCount();
+    }
+
+    override fun getChannels() : IntArray
+    {
+        return this.rcChannels;
     }
 
     enum class ButtonOrAxis(val value: Int) {
@@ -54,7 +61,7 @@ class GamepadRC : RCChannels{
 
     open class ButtonActionBase(
         public var actionId : ButtonActionId,
-        public var channel : Int,
+        public var channelIndex : Int,  //0-based index
         public var parm0 : Int,
         public var parm1: Int
     )
@@ -76,86 +83,150 @@ class GamepadRC : RCChannels{
     }
 
     class ButtonActionInitChannel : ButtonActionBase {
-        constructor( channel : Int, parm0 : Int) : super ( ButtonActionId.BUTTON_INIT_CHANNEL, channel, parm0, 0 );
+        constructor(channelIndex : Int, parm0 : Int) : super ( ButtonActionId.BUTTON_INIT_CHANNEL, channelIndex, parm0, 0 );
 
         override fun onInit( rcChanels : RCChannels){
-            if ( !rcChanels.isValidChannel( this.channel ) ) return;
-            rcChanels.set( this.channel, parm0 );
+            if ( !rcChanels.isValidChannel( this.channelIndex ) ) return;
+            rcChanels.set( this.channelIndex, parm0 );
         }
     }
 
     class ButtonActionButtonSetChannel : ButtonActionBase {
-        constructor( channel : Int, parm0 : Int) : super ( ButtonActionId.BUTTON_SET_CHANNEL, channel, parm0, 0 );
+        constructor(channelIndex : Int, parm0 : Int) : super ( ButtonActionId.BUTTON_SET_CHANNEL, channelIndex, parm0, 0 );
 
         override fun onButtonPress( rcChanels : RCChannels, keyCode : Int )  {
-            if ( !rcChanels.isValidChannel( this.channel ) ) return;
-            rcChanels.set( channel, parm0 )
+            if ( !rcChanels.isValidChannel( this.channelIndex ) ) return;
+            rcChanels.set( channelIndex, parm0 )
         }
     }
 
     class ButtonActionButtonToggleChannel2 : ButtonActionBase {
-        constructor(channel : Int, parm0: Int, parm1:Int)  : super( ButtonActionId.BUTTON_TOGGLE_CHANNEL_2, channel, 1000,2000);
+        constructor(channelIndex : Int, parm0: Int, parm1:Int)  : super( ButtonActionId.BUTTON_TOGGLE_CHANNEL_2, channelIndex, parm0,parm1);
 
         override fun onButtonPress( rcChanels : RCChannels, keyCode : Int )  {
-            if ( !rcChanels.isValidChannel( channel ) ) return;
-            if ( rcChanels.get( channel ) == parm0 )
-                rcChanels.set( channel, parm1 )
+            if ( !rcChanels.isValidChannel( channelIndex ) ) return;
+            if ( rcChanels.get( channelIndex ) == parm0 )
+                rcChanels.set( channelIndex, parm1 )
             else
-                rcChanels.set( channel, parm0 );
+                rcChanels.set( channelIndex, parm0 );
         }
     }
 
     class ButtonActionButtonToggleChannel3 : ButtonActionBase {
-        constructor(channel : Int) : super( ButtonActionId.BUTTON_TOGGLE_CHANNEL_3, channel, 0,0);
+        constructor(channelIndex : Int) : super( ButtonActionId.BUTTON_TOGGLE_CHANNEL_3, channelIndex, 0,0);
 
         override fun onButtonPress( rcChanels : RCChannels, keyCode : Int )  {
-            if ( !rcChanels.isValidChannel(channel) ) return;
-            if ( rcChanels.get( channel) == 1000 )
-                rcChanels.set( channel, 1500 )
-            else if ( rcChanels.get( channel ) == 1500 )
-                    rcChanels.set( channel, 2000 )
+            if ( !rcChanels.isValidChannel(channelIndex) ) return;
+            if ( rcChanels.get( channelIndex) == 1000 )
+                rcChanels.set( channelIndex, 1500 )
+            else if ( rcChanels.get( channelIndex ) == 1500 )
+                    rcChanels.set( channelIndex, 2000 )
             else
-                rcChanels.set( channel, 1000 )
+                rcChanels.set( channelIndex, 1000 )
         }
     }
 
     class ButtonActionButtonToggleChannel4 : ButtonActionBase {
-        constructor(channel : Int) : super( ButtonActionId.BUTTON_TOGGLE_CHANNEL_4, channel, 0,0);
+        constructor(channelIndex : Int) : super( ButtonActionId.BUTTON_TOGGLE_CHANNEL_4, channelIndex, 0,0);
 
         override fun onButtonPress( rcChanels : RCChannels, keyCode : Int )  {
-            if ( !rcChanels.isValidChannel( channel ) ) return;
-            if ( rcChanels.get( channel ) == 1000 )
-                rcChanels.set( channel,  1333 )
-            else if ( rcChanels.get( channel ) == 1333 )
-                rcChanels.set( channel, 1666 )
-            else if ( rcChanels.get( channel ) == 1666 )
-                rcChanels.set( channel, 2000 )
+            if ( !rcChanels.isValidChannel( channelIndex ) ) return;
+            if ( rcChanels.get( channelIndex ) == 1000 )
+                rcChanels.set( channelIndex,  1333 )
+            else if ( rcChanels.get( channelIndex ) == 1333 )
+                rcChanels.set( channelIndex, 1666 )
+            else if ( rcChanels.get( channelIndex ) == 1666 )
+                rcChanels.set( channelIndex, 2000 )
             else
-            rcChanels.set( channel, 1000 )
+            rcChanels.set( channelIndex, 1000 )
         }
     }
 
     class ButtonActionAxisLinear : ButtonActionBase {
-        constructor( channel : Int, parm0 : Int) : super(ButtonActionId.AXIS_LINEAR, channel, parm0, 0 );
+        constructor(channelIndex : Int, parm0 : Int) : super(ButtonActionId.AXIS_LINEAR, channelIndex, parm0, 0 );
+
+        override fun onInit(rcChannels : RCChannels){
+            if ( !rcChannels.isValidChannel( this.channelIndex ) ) return;
+            rcChannels.set( this.channelIndex, parm0 );
+        }
 
         override fun onAxis( rcChanels : RCChannels, axis : Int, value : Float )  {
+            if ( !rcChanels.isValidChannel( this.channelIndex ) ) return;
 
+            if ( value < 0 ) {
+                rcChanels.set( channelIndex, (parm0 + (2000-parm0)*-value*value*value).roundToInt() );
+            }
+            else if ( value > 0 ) {
+                rcChanels.set( channelIndex, (parm0 - (parm0 - 1000)*value*value*value).roundToInt() );
+            }
+            else {
+                rcChanels.set( channelIndex, parm0 );
+            }
         }
     }
 
     class ButtonActionAxisAdditive : ButtonActionBase {
-        constructor( channel : Int, parm0 : Int) : super( ButtonActionId.AXIS_ADDITIVE, channel, parm0, 0);
+        private var valueF: Float = 0.0f;
+        private var axisValue : Float = 0.0f;
+        private var lastUpdate = System.currentTimeMillis();
+        private var scheduled : Boolean = false;
 
-        override fun onAxis( rcChanels : RCChannels, axis : Int, value : Float )  {
+        constructor(channelIndex : Int, parm0 : Int) : super( ButtonActionId.AXIS_ADDITIVE, channelIndex, parm0, 0);
 
+        override fun onInit(rcChannels : RCChannels){
+            if ( !rcChannels.isValidChannel( this.channelIndex ) ) return;
+            rcChannels.set( this.channelIndex, 1000 );
+        }
+
+        private fun update(rcChannels : RCChannels, axis : Int )  {
+            if ( !rcChannels.isValidChannel( this.channelIndex ) ) return;
+
+            var t = System.currentTimeMillis()
+            var deltaT = t - this.lastUpdate;
+            if ( deltaT > 10000) deltaT = 10000;
+            this.lastUpdate = t;
+            this.valueF += parm0 * deltaT/1000.0f * -axisValue*axisValue*axisValue;
+
+            if ( this.valueF < 1000.0f) valueF = 1000.0f;
+            if ( this.valueF > 2000.0f) valueF = 2000.0f;
+
+            rcChannels.set( this.channelIndex, this.valueF.roundToInt())
+
+            if ( !scheduled && Math.abs( axisValue ) > 0.01f )
+            {
+                scheduled = true;
+                Timer().schedule(object : TimerTask() {
+                    override fun run() {
+                        scheduled = false;
+                        update(rcChannels, axis )
+                    }
+                }, 10)
+            }
+        }
+
+        override fun onAxis(rcChannels : RCChannels, axis : Int, value : Float )  {
+            this.axisValue = value;
+            update( rcChannels, axis )
         }
     }
 
     class ButtonActionAxisUpperPart : ButtonActionBase {
-        constructor( channel : Int) : super( ButtonActionId.AXIS_UPPER_PART, channel, 0, 0 );
+        constructor(channelIndex : Int) : super( ButtonActionId.AXIS_UPPER_PART, channelIndex, 0, 0 );
+
+        override fun onInit( rcChanels : RCChannels){
+            if ( !rcChanels.isValidChannel( this.channelIndex ) ) return;
+            rcChanels.set( this.channelIndex, 1000 );
+        }
 
         override fun onAxis( rcChanels : RCChannels, axis : Int, value : Float )  {
+            if ( !rcChanels.isValidChannel( this.channelIndex ) ) return;
 
+            if ( value < 0 ) {
+                rcChanels.set( channelIndex, (1000 + 1000*-value).roundToInt() );
+            }
+            else {
+                rcChanels.set( channelIndex, 1000 );
+            }
         }
     }
 
@@ -194,8 +265,8 @@ class GamepadRC : RCChannels{
     Left stick : Throttle Upper Part, Yaw
     Right stick: Roll, Pitch
 
-    Start - Arm toggle
-    Select - disarm, beeper on
+    Select - arm
+    Start - disarm, toggle beeper
     Right trigger Cruise
     Right bumper - Altitude hold
     Left trigger - Angle, disable Cruise and AltHold
@@ -203,18 +274,28 @@ class GamepadRC : RCChannels{
     Left thump - pos hold
     Right thumb - RTH
 
+    DPad down - no osd
+    DPad up - mission
+    DPad left - autotrim
+    DPad right - autotune
+
     A - light On/ Off
     B - VTX Power
-    X - off / autotrim / autotune
-    Y - off / mission
+    X - telemetry encapsulation toggle
+    Y - disable autotune, autotrim, missiong
      */
     val buttonPresets = setOf(
         //yaw
         GamepadRC.GamepadPresetItem( ButtonOrAxis.AXIS, MotionEvent.AXIS_X, -1.0f, 1.0f,
             arrayOf( ButtonActionAxisLinear(0, 1500))),
         //throttle
+        /*
         GamepadRC.GamepadPresetItem( ButtonOrAxis.AXIS, MotionEvent.AXIS_Y, -1.0f, 1.0f,
             arrayOf( ButtonActionAxisUpperPart( 1))),
+         */
+        GamepadRC.GamepadPresetItem( ButtonOrAxis.AXIS, MotionEvent.AXIS_Y, -1.0f, 1.0f,
+            arrayOf( ButtonActionAxisAdditive( 1, 1500))),
+
         //roll
         GamepadRC.GamepadPresetItem( ButtonOrAxis.AXIS, MotionEvent.AXIS_RZ, -1.0f, 1.0f,
             arrayOf( ButtonActionAxisLinear(2, 1500))),
@@ -222,44 +303,79 @@ class GamepadRC : RCChannels{
         GamepadRC.GamepadPresetItem( ButtonOrAxis.AXIS, MotionEvent.AXIS_Z, -1.0f, 1.0f,
             arrayOf( ButtonActionAxisLinear(3, 1500))),
 
-        //arm toggle
+        //disarm/beeper
         GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_START, -1.0f, 1.0f,
-            arrayOf( ButtonActionButtonToggleChannel2(5, 1000,2000))),
+            arrayOf( ButtonActionButtonToggleChannel2(5-1, 1000, 1500))),
 
-        //disarm,beeper enable
+        //arm
         GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_SELECT, -1.0f, 1.0f,
-            arrayOf( ButtonActionButtonSetChannel(5, 1500))),
+            arrayOf( ButtonActionButtonSetChannel(5-1, 2000))),
 
-        //horizon mode, disable alt hold and cruise ( right bumper)
+        //horizon mode, disable alt hold and cruise ( left bumper)
         GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_L1, -1.0f, 1.0f,
-            arrayOf( ButtonActionButtonSetChannel(6, 1500),
-                        ButtonActionButtonSetChannel(7, 1000))),
-        //angle mode, disable alt hold and cruise ( right trigger )
+            arrayOf( ButtonActionButtonSetChannel(6-1, 1500),
+                        ButtonActionButtonSetChannel(7-1, 1000),
+                ButtonActionButtonSetChannel(8-1, 1000))),
+        //angle mode, disable alt hold and cruise  ( left trigger)
         GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_L2, -1.0f, 1.0f,
-            arrayOf( ButtonActionInitChannel(6, 2000),
-                        ButtonActionButtonSetChannel(6, 2000),
-                        ButtonActionButtonSetChannel(7, 1000))),
-        //alt hold ( right bumper)
-        GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_L2, -1.0f, 1.0f,
-        arrayOf( ButtonActionButtonSetChannel(7, 1500))),
-        //cruise ( right trigger)
-        GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_L1, -1.0f, 1.0f,
-        arrayOf( ButtonActionInitChannel(7, 2000),
-            ButtonActionButtonSetChannel(7, 1500))),
+            arrayOf( ButtonActionInitChannel(6-1, 2000),
+                        ButtonActionButtonSetChannel(6-1, 2000),
+                        ButtonActionButtonSetChannel(7-1, 1000),
+                ButtonActionButtonSetChannel(8-1, 1000))),
+        //althold ( right bumper)
+        GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_R1, -1.0f, 1.0f,
+        arrayOf( ButtonActionButtonSetChannel(7-1, 1500),
+            ButtonActionButtonSetChannel(8-1, 1000))),
+
+        //cruise( right trigger )
+        GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_R2, -1.0f, 1.0f,
+        arrayOf( ButtonActionInitChannel(7-1, 2000),
+            ButtonActionButtonSetChannel(7-1, 2000),
+            ButtonActionButtonSetChannel(8-1, 1000))),
 
         //light or//off
         GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_A, -1.0f, 1.0f,
-        arrayOf( ButtonActionInitChannel(11, 2000),
-            ButtonActionButtonToggleChannel2(11, 1000,2000))),
+        arrayOf( ButtonActionInitChannel(11-1, 2000),
+            ButtonActionButtonToggleChannel2(11-1, 1000,2000))),
 
+        //VTX Power
         GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_B, -1.0f, 1.0f,
-            arrayOf( ButtonActionButtonToggleChannel3(12))),
+            arrayOf( ButtonActionButtonToggleChannel3(10-1))),
 
+        //High data rate stream, telemetry encapsulation
         GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_X, -1.0f, 1.0f,
-            arrayOf( ButtonActionButtonToggleChannel3(9))),
+            arrayOf( ButtonActionInitChannel( 14-1, 2000 ),
+                ButtonActionButtonToggleChannel2(12-1, 1000, 2000),
+                    ButtonActionButtonToggleChannel2(14-1, 2000, 1000))),
 
+        //Pos hold
+        GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_THUMBL, -1.0f, 1.0f,
+            arrayOf( ButtonActionButtonSetChannel(8-1, 1500))),
+
+        //RTH
+        GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_THUMBR, -1.0f, 1.0f,
+            arrayOf( ButtonActionButtonSetChannel(8-1, 2000))),
+
+        //autotrim
+        GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_DPAD_LEFT, -1.0f, 1.0f,
+            arrayOf( ButtonActionButtonSetChannel(9-1, 1200))),
+
+        //autotune
+        GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_DPAD_RIGHT, -1.0f, 1.0f,
+            arrayOf( ButtonActionButtonSetChannel(9-1, 1400))),
+
+        //no osd
+        GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_DPAD_DOWN, -1.0f, 1.0f,
+            arrayOf( ButtonActionButtonSetChannel(9-1, 1800))),
+
+        //mission
+        GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_DPAD_UP, -1.0f, 1.0f,
+            arrayOf( ButtonActionButtonSetChannel(9-1, 2000))),
+
+        //disable autotrim/autotune/mission
         GamepadRC.GamepadPresetItem( ButtonOrAxis.BUTTON, KeyEvent.KEYCODE_BUTTON_Y, -1.0f, 1.0f,
-            arrayOf( ButtonActionButtonToggleChannel2(13, 1000,1900)))
+            arrayOf( ButtonActionButtonSetChannel(9-1, 1000)))
+
     )
 
     private val buttonNames: Map<Int,String> = mapOf(
@@ -296,10 +412,15 @@ class GamepadRC : RCChannels{
         return this.axisNames.get(code) ?: ("Axis Code: " + code);
     }
 
-    constructor( ) {
+    private var callback : Callback? = null;
+
+    constructor() {
         this.initRcChannels();
     }
 
+    public fun registerCallback( callback: Callback) {
+        this.callback = callback;
+    }
 
     private fun initRcChannels()  {
         for ( i in 0..RC_CHANNELS_COUNT-1) {
@@ -314,7 +435,7 @@ class GamepadRC : RCChannels{
     }
 
     private fun handleButtonPress( keyCode : Int) : Boolean {
-        Log.d("GAMEPAD","HandlebuttonPress: KeyEvent code=" + keyCode + ", name=" + this.buttonNames.get((keyCode)));
+        //Log.d("GAMEPAD","HandlebuttonPress: KeyEvent code=" + keyCode + ", name=" + this.buttonNames.get((keyCode)));
 
         var handled = false;
         for ( bp in this.buttonPresets)
@@ -343,6 +464,7 @@ class GamepadRC : RCChannels{
     //listen gamepad sticks and d-pad
     public fun handleGenericMotionEvent(event: MotionEvent): Boolean {
         if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK) {
+            /*
             Log.d("GAMEPAD","X=" + event.getAxisValue(MotionEvent.AXIS_X));
             Log.d("GAMEPAD","Y=" + event.getAxisValue(MotionEvent.AXIS_Y));
             Log.d("GAMEPAD","Z=" + event.getAxisValue(MotionEvent.AXIS_Z));
@@ -351,6 +473,7 @@ class GamepadRC : RCChannels{
             Log.d("GAMEPAD","HAT_Y=" + event.getAxisValue(MotionEvent.AXIS_HAT_Y));
             Log.d("GAMEPAD","LT=" + event.getAxisValue(MotionEvent.AXIS_LTRIGGER));
             Log.d("GAMEPAD","RT=" + event.getAxisValue(MotionEvent.AXIS_RTRIGGER));
+             */
 
             var DPadButton : Int = -1;
             val xaxis: Float = event.getAxisValue(MotionEvent.AXIS_HAT_X)
@@ -374,7 +497,9 @@ class GamepadRC : RCChannels{
         return true;
     }
 
-
+    interface Callback {
+        fun onChannelValueChanged( instance: RCChannels, channelIndex : Int, channelValue : Int)
+    }
 
 
 }
