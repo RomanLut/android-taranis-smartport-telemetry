@@ -1252,6 +1252,11 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         }
     }
 
+    override fun onGamepadRCState(state: Int)
+    {
+        this.rc_widget?.setShowExclamationMark( state == 0 );
+    }
+
     override fun onSuccessDecode() {
 
     }

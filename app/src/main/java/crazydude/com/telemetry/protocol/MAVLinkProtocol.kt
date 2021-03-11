@@ -4,12 +4,15 @@ import android.util.Log
 import crazydude.com.telemetry.protocol.crc.CRCMAVLink
 import crazydude.com.telemetry.protocol.decoder.DataDecoder
 import crazydude.com.telemetry.protocol.decoder.MAVLinkDataDecoder
+import java.io.OutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 class MAVLinkProtocol : Protocol {
 
-    constructor(dataListener: DataDecoder.Listener) : super(MAVLinkDataDecoder(dataListener))
+    constructor(dataListener: DataDecoder.Listener, initGamepadRC : Boolean = false) : super(MAVLinkDataDecoder(dataListener)) {
+        this.initGamepadRC = initGamepadRC
+    }
     constructor(dataDecoder: DataDecoder) : super(dataDecoder)
 
     private val crc = CRCMAVLink()
@@ -25,6 +28,11 @@ class MAVLinkProtocol : Protocol {
     private var crcLow: Int? = null
     private var crcHigh: Int? = null
     private var unique = HashSet<Int>()
+
+    private val GAMEPADRC_SYSTEM_ID = 2
+    private val GAMEPADRC_COMPONENT_ID = 158  //MAV_COMP_ID_PERIPHERAL
+    private var initGamepadRC : Boolean = false;
+    private var lastGamepadRCHeartbeatTime = System.currentTimeMillis()-2000;
 
     companion object {
         enum class State {
@@ -134,13 +142,26 @@ class MAVLinkProtocol : Protocol {
             )
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.FUEL, fuel.toInt()))
         } else if (messageId == MAV_PACKET_HEARTBEAT_ID && packetLength == MAV_PACKET_HEARTBEAT_LENGTH) {
-            val customMode = byteBuffer.int
-            val aircraftType = byteBuffer.get()
-            val autopilotClass = byteBuffer.get()
-            val mode = byteBuffer.get()
-            val state = byteBuffer.get()
-            val version = byteBuffer.get()
-            dataDecoder.decodeData(Protocol.Companion.TelemetryData(FLYMODE, mode.toInt(), byteBuffer.array()))
+
+            if ( systemId == GAMEPADRC_SYSTEM_ID && componentId == GAMEPADRC_COMPONENT_ID)
+            {
+                if ( this.initGamepadRC)
+                {
+                    val customMode = byteBuffer.int
+                    dataDecoder.decodeData(Protocol.Companion.TelemetryData(GAMEPADRC_STATE, customMode))
+                    this.lastGamepadRCHeartbeatTime = System.currentTimeMillis();
+                }
+            }
+            else
+            {
+                val customMode = byteBuffer.int
+                val aircraftType = byteBuffer.get()
+                val autopilotClass = byteBuffer.get()
+                val mode = byteBuffer.get()
+                val state = byteBuffer.get()
+                val version = byteBuffer.get()
+                dataDecoder.decodeData(Protocol.Companion.TelemetryData(FLYMODE, mode.toInt(), byteBuffer.array()))
+            }
         } else if (messageId == MAV_PACKET_RC_CHANNEL_ID && packetLength == MAV_PACKET_RC_CHANNEL_LENGTH) {
             //Channels RC
         } else if (messageId == MAV_PACKET_ATTITUDE_ID && packetLength == MAV_PACKET_ATTITUDE_LENGTH) {
@@ -230,4 +251,13 @@ class MAVLinkProtocol : Protocol {
         crc.finish_checksum(messageId)
         return crcHigh == crc.msb && crcLow == crc.lsb
     }
+
+    override fun writeRCCommands(outStream : OutputStream)
+    {
+
+    }
+    
+    //todo: Write RC Commands with 10hz frequency if any heardbeat has been detected at least 3 seconds ago
+	//AND we not consumed gamepad data provided by connection
+
 }

@@ -57,7 +57,7 @@ class BluetoothDataPoller(
                                 is MAVLinkProtocol -> {
                                     selectedProtocol =
                                         MAVLinkProtocol(
-                                            listener
+                                            listener, true
                                         )
                                 }
 
@@ -84,6 +84,8 @@ class BluetoothDataPoller(
                             selectedProtocol?.process(buffer[i].toUByte().toInt())
                         }
                     }
+
+                    selectedProtocol?.writeRCCommands(bluetoothSocket.outputStream)
                 }
             } catch (e: IOException) {
                 try {

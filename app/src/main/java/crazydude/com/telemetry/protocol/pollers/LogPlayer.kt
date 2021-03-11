@@ -270,6 +270,11 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
         originalListener.onFlyModeData(armed, heading, firstFlightMode, secondFlightMode)
     }
 
+    override fun onGamepadRCState(state: Int)
+    {
+
+    }
+
     interface DataReadyListener {
         fun onUpdate(percent: Int)
         fun onDataReady(size: Int)

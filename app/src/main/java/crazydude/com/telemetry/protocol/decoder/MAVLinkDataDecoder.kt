@@ -204,6 +204,10 @@ class MAVLinkDataDecoder(listener: Listener) : DataDecoder(listener) {
                 originLatitude = data.data / 10000000.toDouble()
             }
 
+            Protocol.GAMEPADRC_STATE -> {
+                listener.onGamepadRCState(data.data)
+            }
+
             else -> {
                 decoded = false
             }

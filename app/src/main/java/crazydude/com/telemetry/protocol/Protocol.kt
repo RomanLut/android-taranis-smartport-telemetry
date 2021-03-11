@@ -1,6 +1,7 @@
 package crazydude.com.telemetry.protocol
 
 import crazydude.com.telemetry.protocol.decoder.DataDecoder
+import java.io.OutputStream
 
 abstract class Protocol(val dataDecoder: DataDecoder) {
 
@@ -55,6 +56,8 @@ abstract class Protocol(val dataDecoder: DataDecoder) {
         const val ARDU_BATT_1=43
         const val ARDU_PARAM=44
 
+        const val GAMEPADRC_STATE=90
+
         class TelemetryData(val telemetryType: Int, val data: Int, val rawData: ByteArray? = null) {
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true
@@ -83,4 +86,9 @@ abstract class Protocol(val dataDecoder: DataDecoder) {
     }
 
     abstract fun process(data: Int)
+
+    open fun writeRCCommands(outStream : OutputStream)
+    {
+
+    }
 }

@@ -187,6 +187,9 @@ class DataService : Service(), DataDecoder.Listener {
         dataListener?.onFuelData(fuel)
     }
 
+    override fun onGamepadRCState(state: Int){
+    }
+
     override fun onConnected() {
         dataListener?.onConnected()
 
@@ -356,4 +359,6 @@ class DataService : Service(), DataDecoder.Listener {
         satellites = 0
         hasGPSFix = false
     }
+
+    //TODO: If we got any
 }

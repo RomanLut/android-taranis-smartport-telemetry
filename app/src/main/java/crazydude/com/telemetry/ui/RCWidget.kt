@@ -1,12 +1,15 @@
 package crazydude.com.telemetry.ui
 
+import android.R.attr
+import android.app.PendingIntent
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Typeface
+import android.graphics.*
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.View
+import androidx.core.content.ContextCompat
+import crazydude.com.telemetry.R
+
 
 class RCWidget @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -16,6 +19,8 @@ class RCWidget @JvmOverloads constructor(
     private var height: Float = 0f
 
     private var rcChannels : IntArray = IntArray(0);
+
+    private var showExclamationMark = true;
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val widthMode = MeasureSpec.getMode(widthMeasureSpec)
@@ -98,7 +103,13 @@ class RCWidget @JvmOverloads constructor(
                 paint.style = Paint.Style.FILL;
 
                 var v = this.getRCChannelFloat(ch);
-                it.drawRect(x, bottom - strokeWidth/2.0f, x2, bottom - strokeWidth/2.0f - ( h- strokeWidth)*v, paint)
+                it.drawRect(
+                    x,
+                    bottom - strokeWidth / 2.0f,
+                    x2,
+                    bottom - strokeWidth / 2.0f - (h - strokeWidth) * v,
+                    paint
+                )
 
                 //paint.color = Color.rgb(255, 255, 255)
                 paint.color = Color.rgb(180, 180, 180)
@@ -120,6 +131,16 @@ class RCWidget @JvmOverloads constructor(
                 canvas.drawText((ch + 1).toString(), x, height * 0.95f, paint);
             }
 
+            if (showExclamationMark)
+            {
+                var x : Int =  Math.round(0.1 * height + 0.3 * height * 15 + 0.2 * height).toInt() / 2
+                var y = Math.round(height*0.06f);
+                var w = Math.round(height);
+                var h = Math.round(height*0.9f);
+                val d = context.resources.getDrawable( R.drawable.ic_exclamation_triangle)
+                d?.bounds = Rect(x-w/2, y, x+w/2, y + h )
+                d?.draw(canvas)
+            }
         }
     }
 
@@ -127,6 +148,14 @@ class RCWidget @JvmOverloads constructor(
     {
         this.rcChannels = channels.clone();
         invalidate()
+    }
+
+    public fun setShowExclamationMark(value : Boolean)
+    {
+        if ( this.showExclamationMark != value ) {
+            this.showExclamationMark = value;
+            invalidate()
+        }
     }
 
 }

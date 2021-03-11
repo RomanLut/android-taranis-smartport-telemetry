@@ -86,6 +86,11 @@ abstract class DataDecoder(protected val listener: Listener) {
 
             override fun onSuccessDecode() {
             }
+
+            override fun onGamepadRCState(state : Int) {
+
+            }
+
         }
 
     }
@@ -120,6 +125,8 @@ abstract class DataDecoder(protected val listener: Listener) {
         )
 
         fun onAirSpeed(speed: Float)
+        fun onGamepadRCState(state : Int)  //0 - no connection, 1 - Ok
+
         fun onSuccessDecode()
     }
 
