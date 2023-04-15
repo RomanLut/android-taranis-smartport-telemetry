@@ -219,6 +219,7 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
             }
             else -> {
                 decoded = false
+//
             }
         }
 
