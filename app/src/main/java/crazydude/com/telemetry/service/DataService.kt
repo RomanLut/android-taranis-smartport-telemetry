@@ -54,6 +54,9 @@ class DataService : Service(), DataDecoder.Listener {
     val points: ArrayList<Position> = ArrayList()
     private var notification: Notification? = null
 
+    private var dbgSatellites = 0
+    val dbgPoints: ArrayList<Position> = ArrayList()
+
     override fun onCreate() {
         super.onCreate()
 
@@ -171,6 +174,7 @@ class DataService : Service(), DataDecoder.Listener {
         this.dataListener = dataListener
         if (dataListener != null) {
             dataListener.onGPSState(satellites, hasGPSFix)
+            dataListener.onDBGGPSState(satellites, satellites>=6)
         } else {
             if (!isConnected()) {
                 stopSelf()
@@ -323,6 +327,26 @@ class DataService : Service(), DataDecoder.Listener {
         logListener?.onAirSpeedData(speed)
     }
 
+    override fun onDBGGPSState(satellites: Int, gpsFix: Boolean) {
+        dataListener?.onDBGGPSState(satellites, gpsFix)
+        logListener?.onDBGGPSState(satellites, gpsFix)
+    }
+    override fun onDBGGPSData(latitude: Double, longitude: Double) {
+        if (hasGPSFix) {
+            dbgPoints.add(Position(latitude, longitude))
+        }
+        dataListener?.onDBGGPSData(latitude, longitude)
+        logListener?.onDBGGPSData(latitude, longitude)
+    }
+    override fun onDBGGPSData(list: List<Position>, addToEnd: Boolean) {
+        dataListener?.onDBGGPSData(list, addToEnd)
+        logListener?.onDBGGPSData(list, addToEnd)
+    }
+    override fun onDBGGPSEstErrorData(diff: Int) {
+        dataListener?.onDBGGPSEstErrorData(diff)
+        logListener?.onDBGGPSEstErrorData(diff)
+    }
+
     override fun onTelemetryByte() {
         dataListener?.onTelemetryByte()
         logListener?.onTelemetryByte()
@@ -360,10 +384,15 @@ class DataService : Service(), DataDecoder.Listener {
         dataPoller = null
         satellites = 0
         hasGPSFix = false
+
+        dbgSatellites = 0
+        dbgPoints.clear()
+
         stopForeground(true)
     }
 
     override fun onGPSState(satellites: Int, gpsFix: Boolean) {
+        this.satellites = satellites;
         hasGPSFix = gpsFix
         dataListener?.onGPSState(satellites, gpsFix)
         logListener?.onGPSState(satellites, gpsFix)
@@ -473,5 +502,8 @@ class DataService : Service(), DataDecoder.Listener {
         dataPoller = null
         satellites = 0
         hasGPSFix = false
+
+        dbgSatellites = 0;
+        dbgPoints.clear()
     }
 }

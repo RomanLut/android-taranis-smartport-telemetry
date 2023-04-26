@@ -80,6 +80,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     private var connectionFailedSoundId : Int = 0
 
     private var marker: MapMarker? = null
+    private var dbgPolyLine: MapLine? = null
     private var polyLine: MapLine? = null
     private var headingPolyline: MapLine? = null
 
@@ -131,6 +132,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     private lateinit var throttle: TextView
     private lateinit var tlmRate: TextView
 
+    private lateinit var dbgGPSError: TextView
+    private lateinit var dbgSatellites2: TextView
+
     private lateinit var mCameraFragment : com.serenegiant.usbcameratest4.CameraFragment
 
     private lateinit var sensorViewMap: HashMap<String, View>
@@ -142,9 +146,11 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     private var mapType = GoogleMap.MAP_TYPE_NORMAL
 
     private var lastGPS = Position(0.0, 0.0)
+    private var dbgLastGPS = Position(0.0, 0.0)
     private var lastHeading = 0f
     private var followMode = true
     private var hasGPSFix = false
+    private var dbgHasGPSFix = false
     private var replayFileString: String? = null
     private var dataService: DataService? = null
     private var lastPhoneBattery = 0
@@ -167,6 +173,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 if (it.isConnected()) {
                     switchToConnectedState()
                     polyLine?.addPoints(it.points)
+                    dbgPolyLine?.addPoints(it.dbgPoints)
                 }
             }
         }
@@ -238,6 +245,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         throttle = findViewById(R.id.throttle)
         tlmRate = findViewById(R.id.tlm_rate)
 
+        dbgSatellites2 = findViewById(R.id.dbgSatellites2)
+        dbgGPSError = findViewById(R.id.dbgGPSError)
+
         videoHolder.setAspectRatio(640.0/480)
 
         sensorViewMap = hashMapOf(
@@ -267,7 +277,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             Pair(PreferenceManager.sensors.elementAt(23).name, cell_voltage),
             Pair(PreferenceManager.sensors.elementAt(24).name, altitude_msl),
             Pair(PreferenceManager.sensors.elementAt(25).name, throttle),
-            Pair(PreferenceManager.sensors.elementAt(26).name, tlmRate)
+            Pair(PreferenceManager.sensors.elementAt(26).name, tlmRate),
+            Pair(PreferenceManager.sensors.elementAt(27).name, dbgSatellites2),
+            Pair(PreferenceManager.sensors.elementAt(28).name, dbgGPSError)
         )
 
         firebaseAnalytics = FirebaseAnalytics.getInstance(this)
@@ -368,6 +380,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
         headingPolyline?.remove();
         headingPolyline = null;
+        dbgPolyLine?.remove();
+        dbgPolyLine = null;
         polyLine?.remove();
         polyLine = null;
         marker?.remove();
@@ -389,8 +403,12 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         map?.setOnCameraMoveStartedListener {
             setFollowMode( false );
         }
+        dbgPolyLine = map?.addPolyline(Color.BLACK)
+        var p = dataService?.dbgPoints;
+        if (  p!= null )
+            dbgPolyLine?.addPoints(p)
         polyLine = map?.addPolyline(preferenceManager.getRouteColor())
-        val p = dataService?.points;
+        p = dataService?.points;
         if (  p!= null )
             polyLine?.addPoints(p)
         showMyLocation()
@@ -422,8 +440,12 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 RelativeLayout.LayoutParams.MATCH_PARENT,
                 RelativeLayout.LayoutParams.WRAP_CONTENT
             )
+            dbgPolyLine = map?.addPolyline(Color.BLACK)
+            var p = dataService?.dbgPoints;
+            if  (p != null )
+                dbgPolyLine?.addPoints(p)
             polyLine = map?.addPolyline(preferenceManager.getRouteColor())
-            val p = dataService?.points;
+            p = dataService?.points;
             if  (p != null )
                 polyLine?.addPoints(p)
             map?.setOnCameraMoveStartedListener {
@@ -609,6 +631,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
                     //rewind to first gps data to zoom on plane
                     lastGPS = Position(0.0, 0.0);
+                    dbgLastGPS = Position(0.0, 0.0);
                     gotHeading = false;
                     for (i in 0..seekBar.max - 1) {
                         logPlayer.seek(i)
@@ -618,6 +641,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                     }
 
                     polyLine?.clear()
+                    dbgPolyLine?.clear()
                     logPlayer.seek(0);
                 }
             })
@@ -1075,6 +1099,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         this.lastCellVoltage = 0.0f;
         throttle.text = "-"
         tlmRate.text = "-"
+
+        dbgSatellites2.text = "0"
+        dbgGPSError.text= "0";
     }
 
     private fun bleCheck() =
@@ -1109,6 +1136,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         super.onDestroy()
         headingPolyline = null;
         polyLine = null;
+        dbgPolyLine = null;
         map?.onDestroy()
         if (!isChangingConfigurations) {
             dataService?.setDataListener(null)
@@ -1717,6 +1745,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         this.sensorTimeoutManager.disableTimeouts()
         lastGPS = Position(0.0, 0.0);
         hasGPSFix = false;
+        dbgHasGPSFix = false;
         marker?.remove()
         marker = null
         headingPolyline?.remove()
@@ -1740,6 +1769,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         }
         marker?.remove()
         marker = null
+        dbgPolyLine?.clear()
         polyLine?.clear()
         headingPolyline?.remove()
         headingPolyline = null;
@@ -1843,6 +1873,54 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         }
     }
 
+    override fun onDBGGPSState(satellites: Int, gpsFix: Boolean) {
+        runOnUiThread {
+            this.dbgHasGPSFix = gpsFix;
+            this.dbgSatellites2.text = satellites.toString();
+        }
+    }
+    override fun onDBGGPSData(latitude: Double, longitude: Double) {
+        runOnUiThread {
+            if (Position(latitude, longitude) != dbgLastGPS) {
+                dbgLastGPS = Position(latitude, longitude)
+                if (dbgHasGPSFix) {
+                    dbgPolyLine?.addPoints(listOf(dbgLastGPS))
+                }
+            }
+        }
+    }
+    override fun onDBGGPSData(list: List<Position>, addToEnd: Boolean) {
+        runOnUiThread {
+            if (dbgHasGPSFix && list.isNotEmpty()) {
+                if (!addToEnd) {
+                    dbgPolyLine?.clear()
+                    dbgLastGPS = Position(list[0].lat, list[0].lon)
+                }
+
+                //add all points except last one
+                //last one will be fired in onGPSData()
+                dbgPolyLine?.addPoints(list)
+                dbgPolyLine?.removeAt(dbgPolyLine?.size!! - 1)
+
+                if ( list.size >= 2 && this.dbgLastGPS.lat != 0.0 && this.dbgLastGPS.lon != 0.0) {
+                    dbgLastGPS = Position(list[0].lat, list[0].lon)
+                }
+                if ( list.size >= 3){
+                    dbgLastGPS = Position(list[list.size - 2].lat, list[list.size - 2].lon)
+                }
+
+                onDBGGPSData(list[list.size - 1].lat, list[list.size - 1].lon)
+            }
+        }
+    }
+
+    override fun onDBGGPSEstErrorData(diff: Int) {
+        runOnUiThread {
+            this.dbgGPSError.text = diff.toString();
+        }
+    }
+
+
     override fun onTelemetryByte() {
         this.sensorTimeoutManager.onTelemetryByte()
     }
@@ -1857,6 +1935,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             if (hasGPSFix && list.isNotEmpty()) {
                 if (!addToEnd) {
                     polyLine?.clear()
+                    dbgPolyLine?.clear()
                     this.lastTraveledDistance = 0.0;
                     lastGPS = Position(list[0].lat, list[0].lon)
                 }

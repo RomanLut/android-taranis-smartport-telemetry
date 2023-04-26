@@ -276,6 +276,15 @@ class SensorTimeoutManager(protected val listener: SensorTimeoutManager.Listener
         //VBAT OR cell_voltage are fired to SensorTimeoutManager
     }
 
+    override fun onDBGGPSState(satellites: Int, gpsFix: Boolean) {
+    }
+    override fun onDBGGPSData(latitude: Double, longitude: Double) {
+    }
+    override fun onDBGGPSData(list: List<Position>, addToEnd: Boolean) {
+    }
+    override fun onDBGGPSEstErrorData(diff: Int) {
+    }
+
     override fun onTelemetryByte(){
         this.telemetrySize++;
     }

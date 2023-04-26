@@ -369,6 +369,19 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
         originalListener.onRssiDbmdData(rssi)
     }
 
+    override fun onDBGGPSState(satellites: Int, gpsFix: Boolean) {
+        originalListener.onDBGGPSState(satellites, gpsFix)
+    }
+    override fun onDBGGPSData(latitude: Double, longitude: Double) {
+        originalListener.onDBGGPSData(latitude, longitude)
+    }
+    override fun onDBGGPSData(list: List<Position>, addToEnd: Boolean) {
+        originalListener.onDBGGPSData(list, addToEnd)
+    }
+    override fun onDBGGPSEstErrorData(diff: Int) {
+        originalListener.onDBGGPSEstErrorData(diff)
+    }
+
     override fun onTelemetryByte(){
         originalListener.onTelemetryByte()
     }
