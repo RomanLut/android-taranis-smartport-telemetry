@@ -212,6 +212,10 @@ abstract class DataDecoder(protected val listener: Listener) {
         return telemetryType == Protocol.GPS ||
             telemetryType == Protocol.GPS_LATITUDE ||
             telemetryType == Protocol.GPS_LONGITUDE ||
+            telemetryType == Protocol.GPS_ORIGIN_LATITUDE ||
+            telemetryType == Protocol.GPS_ORIGIN_LONGITUDE ||
+                telemetryType == Protocol.GPS_HOME_LATITUDE ||
+                telemetryType == Protocol.GPS_HOME_LONGITUDE ||
             telemetryType == Protocol.DBG_GPS_LON ||
             telemetryType == Protocol.DBG_GPS_LAT;
     }
