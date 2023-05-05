@@ -173,7 +173,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 if (it.isConnected()) {
                     switchToConnectedState()
                     polyLine?.addPoints(it.points)
+                    limitRouteLinePoints();
                     dbgPolyLine?.addPoints(it.dbgPoints)
+                    limitDbgRouteLinePoints();
                 }
             }
         }
@@ -405,12 +407,16 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         }
         dbgPolyLine = map?.addPolyline(Color.BLACK)
         var p = dataService?.dbgPoints;
-        if (  p!= null )
+        if (  p!= null ) {
             dbgPolyLine?.addPoints(p)
+            limitDbgRouteLinePoints()
+        }
         polyLine = map?.addPolyline(preferenceManager.getRouteColor())
         p = dataService?.points;
-        if (  p!= null )
+        if (  p!= null ) {
             polyLine?.addPoints(p)
+            limitRouteLinePoints()
+        }
         showMyLocation()
     }
 
@@ -442,12 +448,16 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             )
             dbgPolyLine = map?.addPolyline(Color.BLACK)
             var p = dataService?.dbgPoints;
-            if  (p != null )
+            if  (p != null ) {
                 dbgPolyLine?.addPoints(p)
+                limitDbgRouteLinePoints()
+            }
             polyLine = map?.addPolyline(preferenceManager.getRouteColor())
             p = dataService?.points;
-            if  (p != null )
+            if  (p != null ) {
                 polyLine?.addPoints(p)
+                limitRouteLinePoints()
+            }
             map?.setOnCameraMoveStartedListener {
                 setFollowMode( false );
             }
@@ -1885,6 +1895,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 dbgLastGPS = Position(latitude, longitude)
                 if (dbgHasGPSFix) {
                     dbgPolyLine?.addPoints(listOf(dbgLastGPS))
+                    limitDbgRouteLinePoints()
                 }
             }
         }
@@ -1901,6 +1912,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 //last one will be fired in onGPSData()
                 dbgPolyLine?.addPoints(list)
                 dbgPolyLine?.removeAt(dbgPolyLine?.size!! - 1)
+                limitDbgRouteLinePoints()
 
                 if ( list.size >= 2 && this.dbgLastGPS.lat != 0.0 && this.dbgLastGPS.lon != 0.0) {
                     dbgLastGPS = Position(list[0].lat, list[0].lon)
@@ -1944,6 +1956,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 //last one will be fired in onGPSData()
                 polyLine?.addPoints(list)
                 polyLine?.removeAt(polyLine?.size!! - 1)
+                limitRouteLinePoints();
 
                 if ( list.size >= 2 && this.lastGPS.lat != 0.0 && this.lastGPS.lon != 0.0) {
                     this.lastTraveledDistance += SphericalUtil.computeDistanceBetween(
@@ -1983,6 +1996,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 }
                 if (hasGPSFix) {
                     polyLine?.addPoints(listOf(lastGPS))
+                    limitRouteLinePoints();
                     this.lastTraveledDistance += d
                     this.traveled_distance.text = this.formatDistance( this.lastTraveledDistance.toFloat() );
                 }
@@ -2214,14 +2228,34 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         }
     }
 
-        fun setFollowMode( mode: Boolean ){
-            followMode = mode;
-            if ( mode ) {
-                this.followButton.imageAlpha = 255
-            }
-            else {
-                this.followButton.imageAlpha = 128
+    fun setFollowMode( mode: Boolean ){
+        followMode = mode;
+        if ( mode ) {
+            this.followButton.imageAlpha = 255
+        }
+        else {
+            this.followButton.imageAlpha = 128
+        }
+    }
+
+    fun limitRouteLinePoints() {
+        val maxCount = preferenceManager.getMaxRoutePoints()
+
+        if ( maxCount > 0) {
+            while (polyLine?.size!! > maxCount) {
+                polyLine?.removeAt(0)
             }
         }
+    }
+
+    fun limitDbgRouteLinePoints() {
+        val maxCount = preferenceManager.getMaxRoutePoints()
+
+        if ( maxCount > 0) {
+            while (dbgPolyLine?.size!! > maxCount) {
+                dbgPolyLine?.removeAt(0)
+            }
+        }
+    }
 
 }
