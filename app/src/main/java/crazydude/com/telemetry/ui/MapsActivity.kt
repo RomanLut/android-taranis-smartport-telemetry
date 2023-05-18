@@ -662,7 +662,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                                 if ( logPlayer?.isPlaying() == true) {
                                     logPlayer?.stop()
                                     restartPlayback = true;
-                        }
+                                }
                             }
                             logPlayer?.seek(position)
                             if ( restartPlayback) {
@@ -691,7 +691,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
                     polyLine?.clear()
                     dbgPolyLine?.clear()
-                    logPlayer.seek(0);
+                    logPlayer?.seek(0);
                 }
 
                 override fun onPlaybackPositionChange(currentPosition: Int) {
@@ -1983,7 +1983,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             if (dbgHasGPSFix && list.isNotEmpty()) {
                 if (!addToEnd) {
                     dbgPolyLine?.clear()
-                    dbgLastGPS = Position(list[0].lat, list[0].lon)
+                    if ( list.size > 0 ) {
+                        dbgLastGPS = Position(list[0].lat, list[0].lon)
+                    }
                 }
 
                 //add all points except last one
@@ -2025,32 +2027,34 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             this.hasGPSFix = false;
             this.lastTraveledDistance = 0.0
             this.polyLine?.clear()
+            this.dbgPolyLine?.clear()
         }
     }
 
     override fun onGPSData(list: List<Position>, addToEnd: Boolean) {
         this.sensorTimeoutManager.onGPSData(list, addToEnd);
         runOnUiThread {
-                if (!addToEnd) {
-                    polyLine?.clear()
-                    dbgPolyLine?.clear()
-                    this.lastTraveledDistance = 0.0;
+            if (!addToEnd) {
+                polyLine?.clear()
+                dbgPolyLine?.clear()
+                this.lastTraveledDistance = 0.0;
                 lastGPS = Position(0.0,0.0)
-                }
+            }
             if (hasGPSFix && list.isNotEmpty()) {
                 //add all points except last one
                 //last one will be fired in onGPSData()
                 if ( list.size>=2) {
-                polyLine?.addPoints(list)
-                polyLine?.removeAt(polyLine?.size!! - 1)
-                limitRouteLinePoints();
+                    polyLine?.addPoints(list)
+                    polyLine?.removeAt(polyLine?.size!! - 1)
+                    limitRouteLinePoints();
+                }
 
                 for (i in 0..list.size - 2) {
                     if (this.lastGPS.lat != 0.0 && this.lastGPS.lon != 0.0) {
                     this.lastTraveledDistance += SphericalUtil.computeDistanceBetween(
                             this.lastGPS.toLatLng(), LatLng(list[i].lat, list[i].lon)
-                    )
-                }
+                        )
+                    }
                     lastGPS = Position(list[i].lat, list[i].lon)
                 }
 

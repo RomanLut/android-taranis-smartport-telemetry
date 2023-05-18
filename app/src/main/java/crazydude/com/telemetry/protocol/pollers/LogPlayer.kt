@@ -155,9 +155,9 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
             dataReadyListener?.onDataReady(result.size)
             //exportGPX();
 
-            if (dataReadyListener?.getPlaybackAutostart() == true ){
+            if (dataReadyListener?.getPlaybackAutostart() == true ) {
                 startPlayback();
-    }
+            }
         }
     }
 
