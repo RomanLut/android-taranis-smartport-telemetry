@@ -17,6 +17,8 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
 
     private var cachedData = ArrayList<Protocol.Companion.TelemetryData>()
     private var decodedCoordinates = ArrayList<Position>()
+    private var hasGPSFix = false
+    private var satellites = 0;
     private var dataReadyListener: DataReadyListener? = null
     private var currentPosition: Int = 0
     private var uniqueData = HashMap<Int, Int>()
@@ -28,6 +30,12 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
     private var decodedHeading : Float = 0f;
 
     private var statusTextExpire : Int = 0;
+
+    private var fireGPSState = false;
+
+    private var mTimer: Timer? = null
+
+    private var totalPlaybackDurationMS : Int = 30000;
 
     //async task used to load file, detect protocol and decode packets into arrayList
     private val task = @SuppressLint("StaticFieldLeak") object :
@@ -103,7 +111,8 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
 
             val buffer = ByteArray(1024)
 
-            //feed protocolDetector until protocol is detected and tempProtocol, protocol are assigned correct protocol decoder
+            //feed protocolDetector until protocol is detected and
+            //tempProtocol and protocol are assigned correct protocol decoder
             while (logFile.read(buffer) == buffer.size && tempProtocol == null) {
                 for (byte in buffer) {
                     if (tempProtocol == null) {
@@ -145,8 +154,11 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
             cachedData = result
             dataReadyListener?.onDataReady(result.size)
             //exportGPX();
-        }
 
+            if (dataReadyListener?.getPlaybackAutostart() == true ){
+                startPlayback();
+    }
+        }
     }
 
     fun load(file: File, dataReadyListener: DataReadyListener) {
@@ -164,11 +176,33 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
         uniqueData.clear()
         uniqueDataIndex.clear()
         decodedCoordinates.clear()
+
+        //when decodedCoordinates.size=key, cachedData[value]
+        var outUniqueData: HashMap<Int, ArrayList<Int>> = HashMap<Int, ArrayList<Int>>();
+
+        this.fireGPSState = false;
+
         var addToEnd: Boolean = false;
+
+        if ( position == 0) {
+            //clear router line and message
+            protocol.dataDecoder.restart()
+            this.expireStatusText(10000)
+        }
+
         if (position > currentPosition) {
             for (i in currentPosition until position) {
+                var prevFix = this.hasGPSFix
                 if ( protocol.dataDecoder.isGPSData( cachedData[i].telemetryType )) {
                     protocol.dataDecoder.decodeData(cachedData[i])
+                    if ( prevFix != this.hasGPSFix)
+                    {
+                        var index = decodedCoordinates.size;
+                        if ( outUniqueData[index] == null) {
+                            outUniqueData[index] = ArrayList<Int>();
+                        }
+                        outUniqueData[index]?.add(i);
+                    }
                 } else {
                     uniqueData[cachedData[i].telemetryType] = i
                     uniqueDataIndex[cachedData[i].telemetryType] = decodedCoordinates.size;
@@ -178,9 +212,20 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
             currentPosition = position
         } else if (position < currentPosition) {
             protocol.dataDecoder.restart()
+            this.hasGPSFix = false;
+            this.satellites = 0;
             for (i in 0 until position) {
+                var prevFix = this.hasGPSFix
                 if ( protocol.dataDecoder.isGPSData( cachedData[i].telemetryType )) {
                     protocol.dataDecoder.decodeData(cachedData[i])
+                    if ( prevFix != this.hasGPSFix)
+                    {
+                        var index = decodedCoordinates.size;
+                        if ( outUniqueData[index] == null) {
+                            outUniqueData[index] = ArrayList<Int>();
+                        }
+                        outUniqueData[index]?.add(i);
+                    }
                 } else {
                     uniqueData[cachedData[i].telemetryType] = i
                     uniqueDataIndex[cachedData[i].telemetryType] = decodedCoordinates.size;
@@ -190,22 +235,19 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
             addToEnd = false
         }
 
-        //we can fire only last packet for unique data,
-        //but it has to be correctly fired between gps coords
-        var outDecodedCoordinates = ArrayList<Position>()
-
-        //when decodedCoordinates.size, fire packets with [ids]
-        var outUniqueData: HashMap<Int, ArrayList<Int>> = HashMap<Int, ArrayList<Int>>();
-
         uniqueDataIndex.forEach {
-            //telemetry packet of 'type' should be fired after decodedCoordinates[index]
             var type = it.key;
             var index = it.value;
             if ( outUniqueData[index] == null) {
                 outUniqueData[index] = ArrayList<Int>();
             }
-            outUniqueData[index]?.add(type);
+            outUniqueData[index]?.add(uniqueData[type]!!);
         }
+
+        //we can fire only last packet for unique data,
+        //but it has to be correctly fired between gps coords
+        var outDecodedCoordinates = ArrayList<Position>()
+        this.fireGPSState = true;
 
         for ( index in 0..decodedCoordinates.size) {
             var uids: ArrayList<Int>? = outUniqueData[index];
@@ -217,10 +259,7 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
                     outDecodedCoordinates.clear();
                 }
                 uids.forEach({
-                    var ci : Int? = uniqueData[it];
-                    if ( ci != null) {
-                        protocol.dataDecoder.decodeData(cachedData[ci])
-                    }
+                    protocol.dataDecoder.decodeData(cachedData[it])
                 })
             }
             if ( index < decodedCoordinates.size )
@@ -234,6 +273,46 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
             this.expireStatusText(outDecodedCoordinates.size)
         }
     }
+
+    fun stop() {
+        if ( mTimer != null ) {
+            this.mTimer?.cancel();
+            this.mTimer = null;
+            this.dataReadyListener?.onPlaybackStateChange(false)
+        }
+    }
+
+    fun startPlayback() {
+        if ( this.mTimer == null ) {
+            this.mTimer = Timer();
+
+            if ( currentPosition == cachedData.size) {
+                seek(0)
+            }
+
+            totalPlaybackDurationMS = dataReadyListener!!.getTotalPlaybackDurationSec() * 1000
+
+            val step = Math.max(1, Math.min( 1000, cachedData.size / (totalPlaybackDurationMS / 50)))
+
+            this.mTimer?.scheduleAtFixedRate(object : TimerTask() {
+                override fun run() {
+                    if ( currentPosition == cachedData.size ) {
+                        stop();
+                    } else {
+                        var nextPosition = Math.min(currentPosition + step, cachedData.size)
+                        dataReadyListener?.onPlaybackPositionChange( nextPosition );
+                    }
+                }
+            }, 100, 50)
+            this.dataReadyListener?.onPlaybackStateChange(true)
+        }
+
+    }
+
+    public fun isPlaying() : Boolean {
+        return this.mTimer != null;
+    }
+
 
     override fun onConnectionFailed() {
     }
@@ -300,7 +379,11 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
     }
 
     override fun onGPSState(satellites: Int, gpsFix: Boolean) {
+        this.hasGPSFix = gpsFix
+        this.satellites = satellites
+        if ( fireGPSState) {
         originalListener.onGPSState(satellites, gpsFix)
+    }
     }
 
     override fun onVSpeedData(vspeed: Float) {
@@ -406,6 +489,10 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
         originalListener.onSuccessDecode()
     }
 
+    override fun onDecoderRestart() {
+        originalListener.onDecoderRestart()
+    }
+
     override fun onFlyModeData(
         armed: Boolean,
         heading: Boolean,
@@ -500,5 +587,9 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
     interface DataReadyListener {
         fun onUpdate(percent: Int)
         fun onDataReady(size: Int)
+        fun onPlaybackPositionChange(currentPosition: Int)
+        fun onPlaybackStateChange( isPlaying : Boolean)
+        fun getTotalPlaybackDurationSec() : Int
+        fun getPlaybackAutostart() : Boolean
     }
 }

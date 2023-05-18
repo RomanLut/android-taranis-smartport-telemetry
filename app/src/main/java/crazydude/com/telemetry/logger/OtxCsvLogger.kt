@@ -341,4 +341,9 @@ class OtxCsvLogger : DataDecoder.Listener {
     override fun onSuccessDecode() {
 
     }
+
+    override fun onDecoderRestart() {
+
+    }
+
 }

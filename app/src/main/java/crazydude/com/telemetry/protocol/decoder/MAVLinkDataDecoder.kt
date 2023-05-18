@@ -107,6 +107,7 @@ class MAVLinkDataDecoder(listener: Listener) : DataDecoder(listener) {
         this.armed = false;
         this.armedOnce = false;
         this.rcChannels = IntArray(8) {1500};
+        this.listener.onDecoderRestart()
     }
 
 
