@@ -1983,21 +1983,14 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             if (dbgHasGPSFix && list.isNotEmpty()) {
                 if (!addToEnd) {
                     dbgPolyLine?.clear()
-                    if ( list.size > 0 ) {
-                        dbgLastGPS = Position(list[0].lat, list[0].lon)
-                    }
+                    dbgLastGPS = Position(0.0, 0.0)
                 }
 
-                //add all points except last one
-                //last one will be fired in onGPSData()
-                dbgPolyLine?.addPoints(list)
-                dbgPolyLine?.removeAt(dbgPolyLine?.size!! - 1)
-                limitDbgRouteLinePoints()
+                if ( list.size >= 2) {
+                    dbgPolyLine?.addPoints(list)
+                    dbgPolyLine?.removeAt(dbgPolyLine?.size!! - 1)
+                    limitDbgRouteLinePoints()
 
-                if ( list.size >= 2 && this.dbgLastGPS.lat != 0.0 && this.dbgLastGPS.lon != 0.0) {
-                    dbgLastGPS = Position(list[0].lat, list[0].lon)
-                }
-                if ( list.size >= 3){
                     dbgLastGPS = Position(list[list.size - 2].lat, list[list.size - 2].lon)
                 }
 
@@ -2036,7 +2029,6 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         runOnUiThread {
             if (!addToEnd) {
                 polyLine?.clear()
-                dbgPolyLine?.clear()
                 this.lastTraveledDistance = 0.0;
                 lastGPS = Position(0.0,0.0)
             }
