@@ -1437,9 +1437,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 marker =
                     map?.addMarker(R.drawable.ic_plane, preferenceManager.getPlaneColor(), lastGPS)
                 marker?.rotation = lastHeading;
-                if (map?.initialized() ?: false) {
-                    map?.moveCamera(lastGPS, 15f)
-                }
+                map?.moveCamera(lastGPS, 15f)
             }
             this.satellites.text = if (satellites == 99) "ES" else satellites.toString()
         }
