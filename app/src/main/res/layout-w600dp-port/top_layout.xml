@@ -331,6 +331,42 @@
                     android:textSize="16sp"
                     app:minText="300 b/s"/>
 
+            <crazydude.com.telemetry.ui.TextViewStableSize
+                    android:id="@+id/dbgSatellites2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="6dp"
+                    android:layout_marginRight="6dp"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="2dp"
+                    android:drawableTop="@drawable/ic_num_sat"
+                    android:drawableTint="@color/SKYBLUE"
+                    android:drawablePadding="0dp"
+                    android:gravity="center_horizontal"
+                    android:text="-"
+                    android:textAlignment="center"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    app:minText="00"/>
+
+            <crazydude.com.telemetry.ui.TextViewStableSize
+                    android:id="@+id/dbgGPSError"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="6dp"
+                    android:layout_marginRight="6dp"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="2dp"
+                    android:drawableTop="@drawable/ic_est_err"
+                    android:drawableTint="@color/SKYBLUE"
+                    android:drawablePadding="0dp"
+                    android:gravity="center_horizontal"
+                    android:text="-"
+                    android:textAlignment="center"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    app:minText="000"/>
+
         </com.nex3z.flowlayout.FlowLayout>
 
 

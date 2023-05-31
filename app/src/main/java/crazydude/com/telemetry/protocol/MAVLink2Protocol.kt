@@ -282,6 +282,13 @@ class MAVLink2Protocol : Protocol {
             val fixType = byteBuffer.get()
             val satellites = byteBuffer.get()
 
+            val dbg_satellites = byteBuffer.int
+            val vel_acc = byteBuffer.int
+            val h_acc = byteBuffer.int
+            val dbg_gps_lat = byteBuffer.int
+            val dbg_gps_lon = byteBuffer.int
+            val dbg_gps_err = byteBuffer.short  //metters
+
             dataDecoder.decodeData( Protocol.Companion.TelemetryData( Protocol.GPS_STATE, fixType.toInt()))
             dataDecoder.decodeData( Protocol.Companion.TelemetryData( Protocol.GPS_SATELLITES, satellites.toInt()))
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.GPS_ALTITUDE, altitude))
@@ -289,6 +296,12 @@ class MAVLink2Protocol : Protocol {
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.GPS_LONGITUDE, lon))
             if (cog.toInt() != -1)
                 dataDecoder.decodeData( Protocol.Companion.TelemetryData( Protocol.HEADING, cog.toInt()))
+
+            dataDecoder.decodeData( Protocol.Companion.TelemetryData( Protocol.DBG_GPS_NUMSATS, dbg_satellites))
+            dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.DBG_GPS_LAT, dbg_gps_lat))
+            dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.DBG_GPS_LON, dbg_gps_lon))
+            dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.DBG_GPS_ERR, dbg_gps_err.toInt()))
+
         } else if (messageId == MAV_PACKET_GPS_ORIGIN_ID) {
             val lat = byteBuffer.int
             val lon = byteBuffer.int

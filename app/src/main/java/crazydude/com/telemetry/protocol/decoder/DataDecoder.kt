@@ -128,6 +128,15 @@ abstract class DataDecoder(protected val listener: Listener) {
             override fun onRssiDbmdData(rssi: Int) {
             }
 
+            override fun onDBGGPSState(satellites: Int, gpsFix: Boolean) {
+            }
+            override fun onDBGGPSData(latitude: Double, longitude: Double) {
+            }
+            override fun onDBGGPSData(list: List<Position>, addToEnd: Boolean) {
+            }
+            override fun onDBGGPSEstErrorData(diff: Int) {
+            }
+
             override fun onTelemetryByte() {
             }
 
@@ -135,9 +144,9 @@ abstract class DataDecoder(protected val listener: Listener) {
             }
 
             override fun onDecoderRestart() {
-            }
-
         }
+
+    }
 
     }
 
@@ -193,6 +202,12 @@ abstract class DataDecoder(protected val listener: Listener) {
         fun onRssiDbm2Data(rssi: Int)
         fun onRssiDbmdData(rssi: Int)
         fun onVBATOrCellData(voltage: Float)
+
+        fun onDBGGPSState(satellites: Int, gpsFix: Boolean)
+        fun onDBGGPSData(latitude: Double, longitude: Double)
+        fun onDBGGPSData(list: List<Position>, addToEnd: Boolean)
+        fun onDBGGPSEstErrorData(diff: Int)
+
         fun onTelemetryByte()
         fun onSuccessDecode()
         fun onDecoderRestart()
@@ -206,8 +221,10 @@ abstract class DataDecoder(protected val listener: Listener) {
             telemetryType == Protocol.GPS_LONGITUDE ||
             telemetryType == Protocol.GPS_ORIGIN_LATITUDE ||
             telemetryType == Protocol.GPS_ORIGIN_LONGITUDE ||
-            telemetryType == Protocol.GPS_HOME_LATITUDE ||
-            telemetryType == Protocol.GPS_HOME_LONGITUDE;
+                telemetryType == Protocol.GPS_HOME_LATITUDE ||
+                telemetryType == Protocol.GPS_HOME_LONGITUDE ||
+            telemetryType == Protocol.DBG_GPS_LON ||
+            telemetryType == Protocol.DBG_GPS_LAT;
     }
 
 }

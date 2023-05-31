@@ -97,6 +97,11 @@ abstract class Protocol(val dataDecoder: DataDecoder) {
 
         const val STATUSTEXT = 120
 
+        const val DBG_GPS_NUMSATS   = 130
+        const val DBG_GPS_LAT       = 131
+        const val DBG_GPS_LON       = 132
+        const val DBG_GPS_ERR       = 133
+
         class TelemetryData(val telemetryType: Int, val data: Int, val rawData: ByteArray? = null) {
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true

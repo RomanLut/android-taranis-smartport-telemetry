@@ -39,7 +39,9 @@ class PreferenceManager(context: Context) {
             SensorSetting("Cell Voltage", 16, "top", false ),
             SensorSetting("Altitude above MSL", 7, "bottom", false),
             SensorSetting("Throttle", 8, "bottom", false),
-            SensorSetting("Telemetry rate", 17, "top", false )
+            SensorSetting("Telemetry rate", 17, "top", false ),
+            SensorSetting("Satellites2", 18),
+            SensorSetting("GPSError", 19)
         )
     }
 

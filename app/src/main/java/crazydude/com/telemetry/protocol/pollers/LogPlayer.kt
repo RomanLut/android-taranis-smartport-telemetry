@@ -157,7 +157,7 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
             dataReadyListener?.onDataReady(result.size)
             //exportGPX();
 
-            if (dataReadyListener?.getPlaybackAutostart() == true ){
+            if (dataReadyListener?.getPlaybackAutostart() == true ) {
                 startPlayback();
             }
         }
@@ -386,8 +386,8 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
         this.hasGPSFix = gpsFix
         this.satellites = satellites
         if ( fireGPSState) {
-            originalListener.onGPSState(satellites, gpsFix)
-        }
+        originalListener.onGPSState(satellites, gpsFix)
+    }
     }
 
     override fun onVSpeedData(vspeed: Float) {
@@ -473,6 +473,19 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
 
     override fun onRssiDbmdData(rssi: Int) {
         originalListener.onRssiDbmdData(rssi)
+    }
+
+    override fun onDBGGPSState(satellites: Int, gpsFix: Boolean) {
+        originalListener.onDBGGPSState(satellites, gpsFix)
+    }
+    override fun onDBGGPSData(latitude: Double, longitude: Double) {
+        originalListener.onDBGGPSData(latitude, longitude)
+    }
+    override fun onDBGGPSData(list: List<Position>, addToEnd: Boolean) {
+        originalListener.onDBGGPSData(list, addToEnd)
+    }
+    override fun onDBGGPSEstErrorData(diff: Int) {
+        originalListener.onDBGGPSEstErrorData(diff)
     }
 
     override fun onTelemetryByte(){

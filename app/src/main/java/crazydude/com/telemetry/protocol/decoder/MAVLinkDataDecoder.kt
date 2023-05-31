@@ -24,6 +24,11 @@ class MAVLinkDataDecoder(listener: Listener) : DataDecoder(listener) {
     private var armedOnce = false;
     private var rcChannels = IntArray(8) {1500};
 
+    private var newDBGLatitude = false
+    private var newDBGLongitude = false
+    private var dbgLatitude: Double = 0.0
+    private var dbgLongitude: Double = 0.0
+
     companion object {
         private const val MAV_MODE_FLAG_STABILIZE_ENABLED = 16
         private const val MAV_MODE_FLAG_GUIDED_ENABLED = 8
@@ -278,6 +283,22 @@ class MAVLinkDataDecoder(listener: Listener) : DataDecoder(listener) {
                 rcChannels[index] = data.data
                 listener.onRCChannels(rcChannels)
             }
+            Protocol.DBG_GPS_NUMSATS -> {
+                val satellites2 = data.data
+                listener.onDBGGPSState(satellites2, satellites2 >= 6)
+            }
+            Protocol.DBG_GPS_LON -> {
+                dbgLongitude = data.data / 10000000.toDouble()
+                newDBGLongitude = true
+            }
+            Protocol.DBG_GPS_LAT -> {
+                dbgLatitude = data.data / 10000000.toDouble()
+                newDBGLatitude = true
+            }
+            Protocol.DBG_GPS_ERR -> {
+                val estErr = data.data
+                listener.onDBGGPSEstErrorData(estErr)
+            }
             else -> {
                 decoded = false
             }
@@ -329,6 +350,15 @@ class MAVLinkDataDecoder(listener: Listener) : DataDecoder(listener) {
 
             newLatitude = false
             newLongitude = false
+
+            if (newDBGLatitude && newDBGLongitude) {
+                if (dbgLatitude != 0.0 && dbgLongitude != 0.0) {
+                    listener.onDBGGPSData(dbgLatitude, dbgLongitude)
+                }
+            }
+
+            newDBGLatitude = false
+            newDBGLongitude = false
         }
 
         if (decoded) {

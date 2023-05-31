@@ -325,6 +325,15 @@ class OtxCsvLogger : DataDecoder.Listener {
         this.batVoltage=voltage
     }
 
+    override fun onDBGGPSState(satellites: Int, gpsFix: Boolean) {
+    }
+    override fun onDBGGPSData(latitude: Double, longitude: Double) {
+    }
+    override fun onDBGGPSData(list: List<Position>, addToEnd: Boolean) {
+    }
+    override fun onDBGGPSEstErrorData(diff: Int) {
+    }
+
     override fun onTelemetryByte() {
 
     }
