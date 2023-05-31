@@ -54,9 +54,9 @@ import crazydude.com.telemetry.protocol.pollers.LogPlayer
 import crazydude.com.telemetry.service.DataService
 import kotlinx.android.synthetic.main.top_layout.*
 import kotlinx.android.synthetic.main.view_map.*
+import uk.co.deanwild.materialshowcaseview.IShowcaseListener
 import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView
 import java.io.File
-import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.ceil
@@ -78,6 +78,10 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             "Hybrid (Google)",
             "OpenStreetMap (can be cached)"
         )
+    }
+
+    enum class RequestWritePermissionSequenceType {
+        NONE, CONNECT, RENAME, DELETE, EXPORT_GPX, EXPORT_KML
     }
 
     private var map: MapWrapper? = null
@@ -115,7 +119,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     private lateinit var mapTypeButton: FloatingActionButton
     private lateinit var fullscreenButton: ImageView
     private lateinit var layoutButton: ImageView
-    private lateinit var replayMenuButton: FloatingActionButton
+    private lateinit var menuButton: FloatingActionButton
     private lateinit var settingsButton: ImageView
     private lateinit var topLayout: RelativeLayout
     private lateinit var bottomLayout: RelativeLayout
@@ -171,6 +175,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     private var gotHeading = false;
 
     private var logPlayer : LogPlayer? = null;
+
+    private var requestWritePermissionSequence = RequestWritePermissionSequenceType.NONE;
 
     private val serviceConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceDisconnected(p0: ComponentName?) {
@@ -238,7 +244,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         horizonView = findViewById(R.id.horizon_view)
         fullscreenButton = findViewById(R.id.fullscreen_button)
         layoutButton = findViewById(R.id.layout_button)
-        replayMenuButton = findViewById(R.id.replay_menu_button)
+        menuButton = findViewById(R.id.replay_menu_button)
         topList = findViewById(R.id.top_list)
         bottomList = findViewById(R.id.bottom_list)
         mapHolder = findViewById(R.id.map_holder)
@@ -338,15 +344,19 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             showMapTypeSelectorDialog()
         }
 
-        replayMenuButton.setOnClickListener {
-            val option0 = "Copy plane location to clipboard";
-            val option1 = "Show route to plane";
+        menuButton.setOnClickListener {
+            val option0 = "Copy UAV location to clipboard";
+            val option1 = "Show route to UAV";
             val option2 = "Rename Log";
             val option3 = "Delete Log";
             val option4 = "Export GPX file...";
             val option5 = "Export KML file...";
             val option6 = "Set playback duration..."
-            val options = arrayOf(option0, option1, option2, option3, option4, option5, option6)
+
+            var options = arrayOf(option0, option1, option2, option3, option4, option5, option6)
+            if ( this.logPlayer == null) {
+                options = arrayOf(option0, option1)
+            }
 
             this.showDialog( AlertDialog.Builder(this)
             .setTitle("Select an action")
@@ -552,6 +562,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 Toast.LENGTH_LONG
             ).show()
         }
+        if ( marker == null ) {
+            Toast.makeText(this, "Location is unknown", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showDirectionsToCurrentLocation() {
@@ -566,6 +579,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             } catch (e: ActivityNotFoundException) {
                 Toast.makeText(this, "Cannot build directions", Toast.LENGTH_LONG).show()
             }
+        }
+        if ( marker == null ) {
+            Toast.makeText(this, "Location is unknown", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -945,6 +961,14 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             .setMaskColour(Color.argb(230, 0, 0, 0))
             .setDismissText("GOT IT")
             .setContentText("You can replay your logged flights by clicking this button")
+            .setListener(
+                object : IShowcaseListener {
+                    override fun onShowcaseDismissed(showcaseView: MaterialShowcaseView?) {
+                        connect();
+                    }
+                    override fun onShowcaseDisplayed(showcaseView: MaterialShowcaseView?) {
+                    }
+                })
             .singleUse("replay_guide").build()
 
         if (showcaseView.hasFired()) {
@@ -1063,18 +1087,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             return
         }
         if (preferenceManager.isLoggingEnabled()) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_DENIED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                    REQUEST_WRITE_PERMISSION
-                )
-                return
-            }
+            if (!requestWritePermission(RequestWritePermissionSequenceType.CONNECT)) return;
         }
 
         val devices = ArrayList<BluetoothDevice>(adapter.bondedDevices)
@@ -1130,18 +1143,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             return
         }
         if (preferenceManager.isLoggingEnabled()) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_DENIED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                    REQUEST_WRITE_PERMISSION
-                )
-                return
-            }
+            if (!requestWritePermission(RequestWritePermissionSequenceType.CONNECT)) return;
         }
 
         val devices = ArrayList<BluetoothDevice>(adapter.bondedDevices)
@@ -1299,7 +1301,14 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 }
             } else if (requestCode == REQUEST_WRITE_PERMISSION) {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    connect()
+                    when (requestWritePermissionSequence) {
+                        RequestWritePermissionSequenceType.CONNECT -> connect()
+                        RequestWritePermissionSequenceType.DELETE -> showDeleteLogDialog()
+                        RequestWritePermissionSequenceType.RENAME -> showRenameLogDialog()
+                        RequestWritePermissionSequenceType.EXPORT_GPX -> showExportGPXDialog()
+                        RequestWritePermissionSequenceType.EXPORT_KML -> showExportKMLDialog1()
+                    }
+                    requestWritePermissionSequence = RequestWritePermissionSequenceType.NONE;
                 } else {
                     this.showDialog(
                         AlertDialog.Builder(this)
@@ -1855,7 +1864,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         setFollowMode( true );
         seekBar.setOnSeekBarChangeListener(null)
         seekBar.progress = 0
-        replayMenuButton.show()
+        menuButton.show()
         connectButton.visibility = View.GONE
         replayButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_close))
         replayButton.setOnClickListener {
@@ -1874,8 +1883,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
     private fun switchToIdleState() {
         this.logPlayer?.stop();
+        this.logPlayer = null;
         resetUI()
-        replayMenuButton.hide()
+        menuButton.hide()
         seekBar.visibility = View.GONE
         playButton.visibility = View.GONE
         connectButton.visibility = View.VISIBLE
@@ -1901,6 +1911,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
     private fun switchToConnectedState() {
         replayButton.visibility = View.GONE
+        menuButton.show()
         connectButton.text = getString(R.string.disconnect)
         connectButton.isEnabled = true
         mode.text = "Connected"
@@ -2375,6 +2386,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     }
 
     fun showRenameLogDialog() {
+        if (!requestWritePermission(RequestWritePermissionSequenceType.RENAME)) return;
+
         val currentFileName = replayFileString ?: "";
         val editText = EditText(this)
         editText.setText(currentFileName)
@@ -2413,6 +2426,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
 
     fun showDeleteLogDialog() {
+        if (!requestWritePermission(RequestWritePermissionSequenceType.DELETE)) return;
+
         this.showDialog( AlertDialog.Builder(this)
         .setTitle("Delete Log")
         .setMessage("Are you sure you want to delete this log?")
@@ -2453,6 +2468,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     }
 
     fun showExportGPXDialog() {
+        if (!requestWritePermission(RequestWritePermissionSequenceType.EXPORT_GPX)) return;
+
         val editText = EditText(this)
         editText.setText(this.logPlayer?.launchPointMSLAltitude.toString())
         editText.inputType = InputType.TYPE_CLASS_NUMBER
@@ -2477,6 +2494,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     }
 
     fun showExportKMLDialog1() {
+        if (!requestWritePermission(RequestWritePermissionSequenceType.EXPORT_KML)) return;
+
         val option1 = "Clamp to ground";
         val option2 = "Relative to ground";
         val option3 = "MSL";
@@ -2546,6 +2565,23 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             Toast.makeText(this, "Duration changed", Toast.LENGTH_SHORT).show()
             dialog.dismiss()
         }.create())
+    }
+
+    fun requestWritePermission(seq: RequestWritePermissionSequenceType): Boolean {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_DENIED
+        ) {
+            requestWritePermissionSequence = seq;
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                REQUEST_WRITE_PERMISSION
+            )
+            return false;
+        }
+        return true;
     }
 
 }
