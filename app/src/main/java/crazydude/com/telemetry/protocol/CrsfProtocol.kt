@@ -189,6 +189,18 @@ class CrsfProtocol : Protocol {
                         if (byteArray[pos - 1] == 0x00.toByte()) {
                             dataDecoder.decodeData( Protocol.Companion.TelemetryData( FLYMODE, 0, byteArray ) )
                         }
+
+                        if ((inputData.size-1) == (pos + 1 +4 +4 +2  )) {
+                            val dbg_satellites = data.get()
+                            val dbg_gps_lat = data.int
+                            val dbg_gps_lon = data.int
+                            val dbg_gps_err = data.short
+
+                            dataDecoder.decodeData( Protocol.Companion.TelemetryData( Protocol.DBG_GPS_NUMSATS, dbg_satellites.toInt()))
+                            dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.DBG_GPS_LAT, dbg_gps_lat))
+                            dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.DBG_GPS_LON, dbg_gps_lon))
+                            dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.DBG_GPS_ERR, dbg_gps_err.toInt()))
+                        }
                     }
                 }
                 ATTITUDE_TYPE.toByte() -> {

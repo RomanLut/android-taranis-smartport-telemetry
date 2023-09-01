@@ -14,6 +14,12 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
     private var newLongitude = false
     private var latitude: Double = 0.0
     private var longitude: Double = 0.0
+
+    private var newDBGLatitude = false
+    private var newDBGLongitude = false
+    private var dbgLatitude: Double = 0.0
+    private var dbgLongitude: Double = 0.0
+
     private var armedLatitude: Double = 0.0
     private var armedLongitude: Double = 0.0
     private var armed = false;
@@ -32,6 +38,12 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
         this.newLongitude = false
         this.latitude = 0.0
         this.longitude = 0.0
+
+        this.newDBGLatitude = false
+        this.newDBGLongitude = false
+        this.dbgLatitude = 0.0
+        this.dbgLongitude = 0.0
+
         this.armedLatitude = 0.0
         this.armedLongitude = 0.0
         this.armed = false;
@@ -218,6 +230,22 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
                 val value = data.data / 10f
                 listener.onVBATOrCellData(value)
             }
+            Protocol.DBG_GPS_NUMSATS -> {
+                val satellites2 = data.data
+                listener.onDBGGPSState(satellites2, satellites2 >= 6)
+            }
+            Protocol.DBG_GPS_LON -> {
+                dbgLongitude = data.data / 10000000.toDouble()
+                newDBGLongitude = true
+            }
+            Protocol.DBG_GPS_LAT -> {
+                dbgLatitude = data.data / 10000000.toDouble()
+                newDBGLatitude = true
+            }
+            Protocol.DBG_GPS_ERR -> {
+                val estErr = data.data
+                listener.onDBGGPSEstErrorData(estErr)
+            }
             else -> {
                 decoded = false
             }
@@ -246,6 +274,14 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
 
             newLatitude = false
             newLongitude = false
+        }
+
+        if (newDBGLatitude && newDBGLongitude) {
+            if (dbgLatitude != 0.0 && dbgLongitude != 0.0) {
+                listener.onDBGGPSData(dbgLatitude, dbgLongitude)
+            }
+            newDBGLatitude = false
+            newDBGLongitude = false
         }
 
         if (decoded) {
