@@ -1862,6 +1862,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 4 -> this.power.text = "500mW"
                 5 -> this.power.text = "1W"
                 6 -> this.power.text = "2W"
+                7 -> this.power.text = "250mW"
+                8 -> this.power.text = "50mW"
                 else -> this.power.text = power.toString();
             }
         }
