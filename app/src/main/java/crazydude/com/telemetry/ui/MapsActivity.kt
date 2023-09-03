@@ -2604,8 +2604,6 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         val options = resources.getStringArray(R.array.playback_durations)
         val options_values = resources.getStringArray(R.array.playback_durations_values)
 
-        val fileName = replaceExtension( replayFileString?:"", ".kml")
-
         this.showDialog( AlertDialog.Builder(this)
         .setTitle("Set playback duration:")
         .setItems(options) { dialog: DialogInterface, which: Int ->
