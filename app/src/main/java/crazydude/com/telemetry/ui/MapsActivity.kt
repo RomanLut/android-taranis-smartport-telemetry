@@ -645,7 +645,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 val dir = Environment.getExternalStoragePublicDirectory("TelemetryLogs")
                 if (dir.exists()) {
                     val files =
-                        dir.listFiles { file -> file.extension == "log" && file.length() > 0 }
+                        dir.listFiles { file -> ((file.extension == "log") || (file.extension == "tlm")) && (file.length() > 0) }
                             .sorted()
                             .reversed()
 

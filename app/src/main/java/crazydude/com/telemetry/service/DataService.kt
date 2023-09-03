@@ -140,7 +140,7 @@ class DataService : Service(), DataDecoder.Listener {
             val name = SimpleDateFormat("yyyy-MM-dd HH-mm-ss").format(Date())
             val dir = Environment.getExternalStoragePublicDirectory("TelemetryLogs")
             dir.mkdirs()
-            val file = File(dir, "$name.log")
+            val file = File(dir, "$name.tlm")
             fileOutputStream = FileOutputStream(file)
         }
 
