@@ -197,6 +197,12 @@ class CrsfProtocol : Protocol {
                             }
                         }
 
+                        var pos = 0
+                        do {
+                            val byte = data.get()
+                            pos++
+                        } while ((byte != 0x00.toByte()) && (pos < inputData.size - 1))
+
                         if ((inputData.size-1) == (pos + 1 +4 +4 +2  )) {
                             val dbg_satellites = data.get()
                             val dbg_gps_lat = data.int
