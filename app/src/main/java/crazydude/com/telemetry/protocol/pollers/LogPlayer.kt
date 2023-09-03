@@ -205,9 +205,10 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
         if (position > currentPosition) {
             for (i in currentPosition until position) {
                 var prevFix = this.hasGPSFix
+                var prevSatellites = this.satellites;
                 if ( protocol.dataDecoder.isGPSData( cachedData[i].telemetryType )) {
                     protocol.dataDecoder.decodeData(cachedData[i])
-                    if ( prevFix != this.hasGPSFix)
+                    if ( (prevFix != this.hasGPSFix) || (prevSatellites != this.satellites))
                     {
                         var index = decodedCoordinates.size;
                         if ( outUniqueData[index] == null) {
@@ -228,9 +229,10 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
             this.satellites = 0;
             for (i in 0 until position) {
                 var prevFix = this.hasGPSFix
+                var prevSatellites = this.satellites;
                 if ( protocol.dataDecoder.isGPSData( cachedData[i].telemetryType )) {
                     protocol.dataDecoder.decodeData(cachedData[i])
-                    if ( prevFix != this.hasGPSFix)
+                    if ( (prevFix != this.hasGPSFix) || (prevSatellites != this.satellites))
                     {
                         var index = decodedCoordinates.size;
                         if ( outUniqueData[index] == null) {
