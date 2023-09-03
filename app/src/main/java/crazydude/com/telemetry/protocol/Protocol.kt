@@ -1,5 +1,7 @@
 package crazydude.com.telemetry.protocol
 
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.SphericalUtil
 import crazydude.com.telemetry.protocol.decoder.DataDecoder
 
 abstract class Protocol(val dataDecoder: DataDecoder) {
@@ -17,7 +19,7 @@ abstract class Protocol(val dataDecoder: DataDecoder) {
         const val VSPEED = 9
         const val ALTITUDE = 10
         const val GSPEED = 11
-        const val DISTANCE = 12
+        const val DISTANCE = 12  //distance to home
         const val ROLL = 13
         const val PITCH = 14
         const val YAW = 15
@@ -129,7 +131,102 @@ abstract class Protocol(val dataDecoder: DataDecoder) {
         }
     }
 
+    private var newLatitude = false
+    private var newLongitude = false
+    private var latitude: Double = 0.0
+    private var longitude: Double = 0.0
+    private var homeLatitude: Double = 0.0
+    private var homeLongitude: Double = 0.0
+    private var armedLatitude: Double = 0.0
+    private var armedLongitude: Double = 0.0
+    private var originLatitude: Double = 0.0
+    private var originLongitude: Double = 0.0
+    private var armed = false;
+    private var armedOnce = false;
+
     abstract fun process(data: Int)
+
+    protected fun processArmed(armed: Boolean) {
+        this.armed = armed;
+        this.processDistance()
+    }
+
+    protected fun processLatitude( lat : Double) {
+        latitude = lat
+        newLatitude = true
+        this.processDistance()
+    }
+
+    protected fun processLongitude( lon : Double) {
+        longitude = lon
+        newLongitude = true
+        this.processDistance()
+    }
+
+    protected fun processOriginLatitude( originLatitude: Double) {
+        this.originLatitude = originLatitude;
+    }
+
+    protected fun processOriginLongitude( originLongitude: Double) {
+        this.originLongitude = originLongitude;
+    }
+
+    protected fun processHomeLatitude( homeLatitude: Double) {
+        this.homeLatitude = homeLatitude;
+    }
+
+    protected fun processHomeLongitude( homeLongitude: Double) {
+        this.homeLongitude = homeLongitude;
+    }
+
+    private fun processDistance() {
+        if (newLatitude && newLongitude) {
+            if (latitude != 0.0 && longitude != 0.0) {
+
+                if ( armed && !armedOnce ) {
+                    armedLatitude = latitude
+                    armedLongitude = longitude
+                    armedOnce = true;
+                }
+
+                if (homeLatitude != 0.0 && homeLongitude != 0.0) {
+
+                    val distance = SphericalUtil.computeDistanceBetween(
+                        LatLng(
+                            homeLatitude,
+                            homeLongitude
+                        ), LatLng(latitude, longitude)
+                    )
+
+                    dataDecoder.decodeData(Protocol.Companion.TelemetryData(DISTANCE, distance.toInt()))
+                } else if (originLatitude != 0.0 && originLongitude != 0.0 ) {
+
+                    val distance = SphericalUtil.computeDistanceBetween(
+                        LatLng(
+                            originLatitude,
+                            originLongitude
+                        ), LatLng(latitude, longitude)
+                    )
+
+                    dataDecoder.decodeData(Protocol.Companion.TelemetryData(DISTANCE, distance.toInt()))
+                } else if (armedLatitude != 0.0 && armedLongitude != 0.0 ) {
+
+                    val distance = SphericalUtil.computeDistanceBetween(
+                        LatLng(
+                            armedLatitude,
+                            armedLongitude
+                        ), LatLng(latitude, longitude)
+                    )
+                    dataDecoder.decodeData(Protocol.Companion.TelemetryData(DISTANCE, distance.toInt()))
+                } else {
+                    dataDecoder.decodeData(Protocol.Companion.TelemetryData(DISTANCE, 0))
+                }
+            }
+
+            newLatitude = false
+            newLongitude = false
+        }
+    }
 
     fun onTelemetryByte(){
         dataDecoder.onTelemetryByte()

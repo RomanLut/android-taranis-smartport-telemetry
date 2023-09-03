@@ -20,10 +20,6 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
     private var dbgLatitude: Double = 0.0
     private var dbgLongitude: Double = 0.0
 
-    private var armedLatitude: Double = 0.0
-    private var armedLongitude: Double = 0.0
-    private var armed = false;
-    private var armedOnce = false;
     private var rcChannels = IntArray(16) {1500};
 
     private fun sq(v : Int) : Int {
@@ -43,11 +39,6 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
         this.newDBGLongitude = false
         this.dbgLatitude = 0.0
         this.dbgLongitude = 0.0
-
-        this.armedLatitude = 0.0
-        this.armedLongitude = 0.0
-        this.armed = false;
-        this.armedOnce = false;
         this.rcChannels = IntArray(16) { 1500 };
         this.listener.onDecoderRestart()
     }
@@ -119,68 +110,53 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
             Protocol.FLYMODE -> {
                 data.rawData?.let {
                     val stringLength = it.indexOfFirst { it == 0x00.toByte() }
-                    val byteArray = ByteArray(stringLength)
-                    it.copyInto(byteArray, endIndex = stringLength)
-                    val flightMode = String(byteArray)
+                    val flightMode = String(it, 1, stringLength-1 )
 
                     when (flightMode) {
                         "AIR", "ACRO" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.ACRO, null)
-                            this.armed = true;
                         }
                         "!FS!" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.FAILSAFE, null)
                         }
                         "MANU" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.MANUAL, null)
-                            this.armed = true;
                         }
                         "RTH" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.RTH, null)
-                            this.armed = true;
                         }
                         "HOLD" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.LOITER, null)
-                            this.armed = true;
                         }
                         "HRST" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.HOME_RESET, null)
-                            this.armed = true;
                         }
                         "3CRS","CRUZ" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.CRUISE3D, null)
-                            this.armed = true;
                         }
                         "CRS", "CRSH" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.CRUISE, null)
-                            this.armed = true;
                         }
                         "AH" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.ALTHOLD, null)
                         }
                         "WP" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.WAYPOINT, null)
-                            this.armed = true;
                         }
                         "ANGL", "STAB" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.ANGLE, null)
-                            this.armed = true;
                         }
                         "HOR" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.HORIZON, null)
-                            this.armed = true;
                         }
                         "WAIT" -> {
                             listener.onFlyModeData(false, false, Companion.FlyMode.WAIT, null)
-                            this.armed = false;
                         }
                         "!ERR" -> {
                             listener.onFlyModeData(false, false, Companion.FlyMode.ERROR, null)
-                            this.armed = false;
                         }
                         "OK" -> {
                             listener.onFlyModeData(false, false, Companion.FlyMode.ACRO, null)
-                            this.armed = false;
                         }
                         else -> {
                             Log.d("CrsfData", "Bad mode $flightMode")
@@ -230,6 +206,9 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
                 val value = data.data / 10f
                 listener.onVBATOrCellData(value)
             }
+            Protocol.DISTANCE -> {
+                listener.onDistanceData(data.data)
+            }
             Protocol.DBG_GPS_NUMSATS -> {
                 val satellites2 = data.data
                 listener.onDBGGPSState(satellites2, satellites2 >= 6)
@@ -252,26 +231,9 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
         }
 
         if (newLatitude && newLongitude) {
+            if (latitude != 0.0 && longitude != 0.0) {
             listener.onGPSData(latitude, longitude)
-
-            if ( armed && !armedOnce ) {
-                armedLatitude = latitude
-                armedLongitude = longitude
-                armedOnce = true;
             }
-
-            if (armedLatitude != 0.0 && armedLongitude != 0.0 ) {
-
-                val distance = SphericalUtil.computeDistanceBetween(
-                    LatLng(
-                        armedLatitude,
-                        armedLongitude
-                    ), LatLng(latitude, longitude)
-                )
-
-                listener.onDistanceData(distance.toInt())
-            }
-
             newLatitude = false
             newLongitude = false
         }

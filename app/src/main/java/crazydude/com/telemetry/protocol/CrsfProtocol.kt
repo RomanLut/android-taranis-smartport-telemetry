@@ -137,7 +137,9 @@ class CrsfProtocol : Protocol {
                         dataDecoder.decodeData( Protocol.Companion.TelemetryData( GPS_SATELLITES, satellites.toInt()))
                         dataDecoder.decodeData( Protocol.Companion.TelemetryData( GPS_ALTITUDE, altitude.toInt()))
                         dataDecoder.decodeData( Protocol.Companion.TelemetryData( GPS_LATITUDE,latitude ))
+                        this.processLatitude(latitude / 10000000.toDouble());
                         dataDecoder.decodeData( Protocol.Companion.TelemetryData( GPS_LONGITUDE, longitude ))
+                        this.processLongitude(longitude / 10000000.toDouble());
                         dataDecoder.decodeData( Protocol.Companion.TelemetryData( GSPEED,groundSpeed.toInt()))
                         dataDecoder.decodeData( Protocol.Companion.TelemetryData( HEADING, heading.toInt()))
                         dataDecoder.decodeData( Protocol.Companion.TelemetryData( ALTITUDE, altitude.toInt() ))
@@ -179,15 +181,20 @@ class CrsfProtocol : Protocol {
                 }
                 FLIGHT_MODE.toByte() -> {
                     if (inputData.size >= MIN_FLIGHT_MODE_PACKET_LEN) {
-                        val byteArray = ByteArray(255)
-                        var pos = 0
-                        do {
-                            val byte = data.get()
-                            byteArray[pos] = byte
-                            pos++
-                        } while ((byte != 0x00.toByte()) && (pos < inputData.size - 1))
-                        if (byteArray[pos - 1] == 0x00.toByte()) {
-                            dataDecoder.decodeData( Protocol.Companion.TelemetryData( FLYMODE, 0, byteArray ) )
+                        val stringLength = inputData.indexOfFirst { it == 0x00.toByte() }
+                        if ( stringLength > 0 ) {
+                            dataDecoder.decodeData( Protocol.Companion.TelemetryData( FLYMODE, 0, inputData ) )
+
+                            val flightMode = String(inputData, 1, stringLength-1 )
+
+                            when (flightMode) {
+                                "AIR", "ACRO", "MANU", "RTH", "HOLD", "HRST", "3CRS","CRUZ", "CRS", "CRSH", "WP", "ANGL", "STAB", "HOR" -> {
+                                    this.processArmed(true);
+                                }
+                                "WAIT", "!ERR", "OK" -> {
+                                    this.processArmed(false);
+                                }
+                            }
                         }
 
                         if ((inputData.size-1) == (pos + 1 +4 +4 +2  )) {

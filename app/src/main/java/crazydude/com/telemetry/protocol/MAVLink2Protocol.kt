@@ -166,6 +166,10 @@ class MAVLink2Protocol : Protocol {
             val state = byteBuffer.get()
             val version = byteBuffer.get()
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(FLYMODE, mode.toInt(), byteBuffer.array()))
+
+            val rawMode = mode.toInt();
+            val armed = (rawMode and MAVLinkDataDecoder.MAV_MODE_FLAG_SAFETY_ARMED) == MAVLinkDataDecoder.MAV_MODE_FLAG_SAFETY_ARMED;
+            this.processArmed(armed);
         } else if (messageId == MAV_PACKET_RC_CHANNELS_RAW_ID) {
             //Channels RC
             //mavlink_rc_channels_raw_t
@@ -293,7 +297,10 @@ class MAVLink2Protocol : Protocol {
             dataDecoder.decodeData( Protocol.Companion.TelemetryData( Protocol.GPS_SATELLITES, satellites.toInt()))
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.GPS_ALTITUDE, altitude))
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.GPS_LATITUDE, lat))
+            this.processLatitude(lat / 10000000.toDouble());
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(Protocol.GPS_LONGITUDE, lon))
+            this.processLongitude(lon / 10000000.toDouble());
+
             if (cog.toInt() != -1)
                 dataDecoder.decodeData( Protocol.Companion.TelemetryData( Protocol.HEADING, cog.toInt()))
 
@@ -307,13 +314,17 @@ class MAVLink2Protocol : Protocol {
             val lon = byteBuffer.int
 
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(GPS_ORIGIN_LATITUDE, lat))
+            this.processOriginLatitude(lat / 10000000.toDouble())
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(GPS_ORIGIN_LONGITUDE, lon))
+            this.processOriginLongitude(lon / 10000000.toDouble())
         } else if (messageId == MAV_PACKET_HOME_POSITION_ID && packetLength == MAV_PACKET_HOME_POSITION_LENGTH) {
             val lat = byteBuffer.int
             val lon = byteBuffer.int
 
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(GPS_HOME_LATITUDE, lat))
+            this.processHomeLatitude(lat / 10000000.toDouble())
             dataDecoder.decodeData(Protocol.Companion.TelemetryData(GPS_HOME_LONGITUDE, lon))
+            this.processHomeLongitude(lon / 10000000.toDouble())
         } else {
             unique.add(messageId)
         }
