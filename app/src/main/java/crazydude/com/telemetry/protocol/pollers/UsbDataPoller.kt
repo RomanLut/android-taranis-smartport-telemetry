@@ -51,6 +51,7 @@ class UsbDataPoller(
                                 FrSkySportProtocol(
                                     listener
                                 )
+                            listener?.onProtocolDetected("FrSky")
                         }
 
                         is CrsfProtocol -> {
@@ -58,6 +59,7 @@ class UsbDataPoller(
                                 CrsfProtocol(
                                     listener
                                 )
+                            listener?.onProtocolDetected("CRSF")
                         }
 
                         is LTMProtocol -> {
@@ -65,7 +67,24 @@ class UsbDataPoller(
                                 LTMProtocol(
                                     listener
                                 )
+                            listener?.onProtocolDetected("LTM")
                         }
+
+                        is MAVLinkProtocol -> {
+                            selectedProtocol =
+                                MAVLinkProtocol(
+                                    listener
+                                )
+                            listener?.onProtocolDetected("Mavlink v1")
+                        }
+
+                        is MAVLink2Protocol -> {
+                            selectedProtocol = MAVLink2Protocol(
+                                listener
+                            )
+                            listener?.onProtocolDetected("Mavlink v2")
+                        }
+
                         else -> {
                             logFile?.close()
                             listener.onConnectionFailed()

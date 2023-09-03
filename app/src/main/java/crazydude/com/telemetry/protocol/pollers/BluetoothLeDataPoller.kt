@@ -139,6 +139,7 @@ class BluetoothLeDataPoller(
                                                             FrSkySportProtocol(
                                                                 listener
                                                             )
+                                                        listener?.onProtocolDetected("FrSky")
                                                     }
 
                                                     is CrsfProtocol -> {
@@ -146,6 +147,7 @@ class BluetoothLeDataPoller(
                                                             CrsfProtocol(
                                                                 listener
                                                             )
+                                                        listener?.onProtocolDetected("CRSF")
                                                     }
 
                                                     is LTMProtocol -> {
@@ -153,6 +155,7 @@ class BluetoothLeDataPoller(
                                                             LTMProtocol(
                                                                 listener
                                                             )
+                                                        listener?.onProtocolDetected("LTM")
                                                     }
 
                                                     is MAVLinkProtocol -> {
@@ -160,6 +163,7 @@ class BluetoothLeDataPoller(
                                                             MAVLinkProtocol(
                                                                 listener
                                                             )
+                                                        listener?.onProtocolDetected("Mavlink v1")
                                                     }
 
                                                     is MAVLink2Protocol -> {
@@ -167,6 +171,7 @@ class BluetoothLeDataPoller(
                                                             MAVLink2Protocol(
                                                                 listener
                                                             )
+                                                        listener?.onProtocolDetected("Mavlink v2")
                                                     }
                                                 }
                                                 serviceSelected = true
