@@ -216,6 +216,7 @@ abstract class DataDecoder(protected val listener: Listener) {
     fun isGPSData( telemetryType : Int ) : Boolean {
         return telemetryType == Protocol.GPS ||
             telemetryType == Protocol.GPS_STATE ||
+            telemetryType == Protocol.GPS_SATELLITES ||
             telemetryType == Protocol.GPS_STATE_ARDU ||
             telemetryType == Protocol.GPS_LATITUDE ||
             telemetryType == Protocol.GPS_LONGITUDE ||

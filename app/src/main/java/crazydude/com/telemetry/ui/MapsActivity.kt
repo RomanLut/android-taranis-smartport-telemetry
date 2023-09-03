@@ -1473,17 +1473,22 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         this.sensorTimeoutManager.onGPSState(satellites, gpsFix)
         runOnUiThread {
             this.hasGPSFix = gpsFix
-            if (gpsFix && marker == null && (map?.initialized() ?: false) && lastGPS.lat != 0.0 && lastGPS.lon != 0.0) {
-                if (headingPolyline == null && preferenceManager.isHeadingLineEnabled()) {
-                    headingPolyline = createHeadingPolyline()
-                    updateHeading()
-                }
-                marker =
-                    map?.addMarker(R.drawable.ic_plane, preferenceManager.getPlaneColor(), lastGPS)
-                marker?.rotation = lastHeading;
-                map?.moveCamera(lastGPS, 15f)
-            }
+            this.tryCreateMarker()
             this.satellites.text = if (satellites == 99) "ES" else satellites.toString()
+        }
+    }
+
+    //should be called on ui thread
+    fun tryCreateMarker() {
+        if (this.hasGPSFix && marker == null && (map?.initialized() ?: false) && lastGPS.lat != 0.0 && lastGPS.lon != 0.0) {
+            if (headingPolyline == null && preferenceManager.isHeadingLineEnabled()) {
+                headingPolyline = createHeadingPolyline()
+                updateHeading()
+            }
+            marker =
+                map?.addMarker(R.drawable.ic_plane, preferenceManager.getPlaneColor(), lastGPS)
+            marker?.rotation = lastHeading;
+            map?.moveCamera(lastGPS, 15f)
         }
     }
 
@@ -2163,6 +2168,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 if (!followMode) {
                     this.map?.invalidate()
                 }
+                this.tryCreateMarker()
             }
         }
     }
