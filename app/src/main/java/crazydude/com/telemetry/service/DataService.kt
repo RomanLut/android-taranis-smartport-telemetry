@@ -362,6 +362,10 @@ class DataService : Service(), DataDecoder.Listener {
         logListener?.onDecoderRestart()
     }
 
+    override fun onProtocolDetected( protocolName: String) {
+        dataListener?.onProtocolDetected(protocolName)
+    }
+
     override fun onRSSIData(rssi: Int) {
         dataListener?.onRSSIData(rssi)
         logListener?.onRSSIData(rssi)

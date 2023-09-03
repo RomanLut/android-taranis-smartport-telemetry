@@ -297,4 +297,8 @@ class SensorTimeoutManager(protected val listener: SensorTimeoutManager.Listener
 
     }
 
+    override fun onProtocolDetected( protocolName: String) {
+
+    }
+
 }

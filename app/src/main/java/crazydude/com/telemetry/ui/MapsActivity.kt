@@ -2111,6 +2111,12 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         }
     }
 
+    override fun onProtocolDetected( protocolName: String) {
+        runOnUiThread {
+            Toast.makeText(this, "Protocol: $protocolName", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onGPSData(list: List<Position>, addToEnd: Boolean) {
         this.sensorTimeoutManager.onGPSData(list, addToEnd);
         runOnUiThread {

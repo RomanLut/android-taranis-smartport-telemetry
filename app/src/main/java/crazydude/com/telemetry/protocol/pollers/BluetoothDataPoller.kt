@@ -40,6 +40,7 @@ class BluetoothDataPoller(
                                         FrSkySportProtocol(
                                             listener
                                         )
+                                    listener?.onProtocolDetected("FrSky")
                                 }
 
                                 is CrsfProtocol -> {
@@ -47,6 +48,7 @@ class BluetoothDataPoller(
                                         CrsfProtocol(
                                             listener
                                         )
+                                    listener?.onProtocolDetected("CRSF")
                                 }
 
                                 is LTMProtocol -> {
@@ -54,6 +56,7 @@ class BluetoothDataPoller(
                                         LTMProtocol(
                                             listener
                                         )
+                                    listener?.onProtocolDetected("LTM")
                                 }
 
                                 is MAVLinkProtocol -> {
@@ -61,12 +64,14 @@ class BluetoothDataPoller(
                                         MAVLinkProtocol(
                                             listener
                                         )
+                                    listener?.onProtocolDetected("Mavlink v1")
                                 }
 
                                 is MAVLink2Protocol -> {
                                     selectedProtocol = MAVLink2Protocol(
                                         listener
                                     )
+                                    listener?.onProtocolDetected("Mavlink v2")
                                 }
 
                                 else -> {
