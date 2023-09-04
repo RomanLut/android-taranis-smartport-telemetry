@@ -4,14 +4,14 @@
 
     <SwitchPreference
             android:title="Telemetry logging RAW"
-            android:summary="Save telemetry RAW data to sdcard. They are saved to TelemetryLog at external storage (sdcard) and can be replayed in this application"
+            android:summary="Save telemetry RAW data to sdcard. They are saved to TelemetryLog at external storage (sdcard) and can be replayed in this application (.tlm)"
             android:text="Logging enabled"
             android:defaultValue="true"
             android:key="logging_enabled"/>
 
     <SwitchPreference
             android:title="Telemetry logging to CSV"
-            android:summary="Save telemetry data to sdcard in OpenTX CSV format."
+            android:summary="Save telemetry data to sdcard in OpenTX CSV format (.csv)"
             android:text="Logging enabled"
             android:defaultValue="true"
             android:key="csv_logging_enabled"/>
