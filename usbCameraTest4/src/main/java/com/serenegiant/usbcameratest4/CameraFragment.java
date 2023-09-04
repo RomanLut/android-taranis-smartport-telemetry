@@ -42,6 +42,8 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.serenegiant.common.BaseFragment;
 import com.serenegiant.dialog.MessageDialogFragment;
 import com.serenegiant.service.UVCService;
@@ -321,6 +323,16 @@ public class CameraFragment extends BaseFragment {
 			getActivity().startService(intent);
 
 			showCameraConnectedToast();
+
+			AppCompatActivity activity = (AppCompatActivity) getActivity();
+			if (activity instanceof CameraFragmentListener) {
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						((CameraFragmentListener) activity).onCameraConnected();
+					}
+				}, 0);
+			}
 		}
 
 		@Override

@@ -42,6 +42,7 @@ import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import com.nex3z.flowlayout.FlowLayout
 import com.serenegiant.usbcameratest4.CameraFragment
+import com.serenegiant.usbcameratest4.CameraFragmentListener
 import crazydude.com.telemetry.R
 import crazydude.com.telemetry.converter.Converter
 import crazydude.com.telemetry.manager.PreferenceManager
@@ -68,7 +69,7 @@ import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 //class MapsActivity : AppCompatActivity(), DataDecoder.Listener {
-class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener, SensorTimeoutManager.Listener {
+class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener, SensorTimeoutManager.Listener, CameraFragmentListener {
 
     companion object {
         private const val REQUEST_ENABLE_BT: Int = 0
@@ -2810,5 +2811,13 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         }
         return true;
     }
+
+    override fun onCameraConnected(){
+        var layout = preferenceManager.getMainLayout()
+        if (layout == 0) {
+            setNextLayout()
+        }
+    }
+
 
 }
