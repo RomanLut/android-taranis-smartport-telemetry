@@ -205,5 +205,29 @@ class PreferenceManager(context: Context) {
         sharedPreferences.edit().putString("playback_duration", v.toString()).apply();
     }
 
+    fun getLastSelectedDataPooler() : String {
+        return sharedPreferences.getString("last_data_pooler", "") ?: ""
+    }
+
+    fun setLastSelectedDataPooler(pooler: String) {
+        sharedPreferences.edit().putString("last_data_pooler", pooler).apply()
+    }
+
+    fun getLastSelectedBluetoothDeviceAddress() : String {
+        return sharedPreferences.getString("last_bt_address", "") ?: ""
+    }
+
+    fun setLastSelectedBluetoothDeviceAddress(pooler: String) {
+        sharedPreferences.edit().putString("last_bt_address", pooler).apply()
+    }
+
+    fun getLastSelectedBLEDeviceAddress() : String {
+        return sharedPreferences.getString("last_ble_address", "") ?: ""
+    }
+
+    fun setLastSelectedBLEDeviceAddress(pooler: String) {
+        sharedPreferences.edit().putString("last_ble_address", pooler).apply()
+    }
+
 
 }
