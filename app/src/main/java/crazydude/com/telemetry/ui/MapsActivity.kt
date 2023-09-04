@@ -1149,7 +1149,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         }
 
         val devices = ArrayList<BluetoothDevice>(adapter.bondedDevices)
-        val deviceNames = ArrayList<String>(devices.map {
+        var deviceNames = ArrayList<String>(devices.map {
             var result = it.name
             if (result == null) {
                 result = it.address
@@ -1159,6 +1159,8 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             }
             result
         })
+
+        deviceNames = augmentNonUniqueDiviceNames(deviceNames, devices.map { i-> i.address })
 
         val deviceAdapter =
             //ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, deviceNames)
@@ -1201,6 +1203,19 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         }
 
         this.showDialog(dialog)
+    }
+
+    private fun augmentNonUniqueDiviceNames(deviceNames : ArrayList<String>, deviceAddr : List<String>) : ArrayList<String>
+    {
+        return ArrayList(deviceNames.mapIndexed { index, i ->
+            var i1 = deviceNames.indexOf(i)
+            var i2 = deviceNames.lastIndexOf(i)
+            if (i1 != i2) {
+                "${deviceNames[index]} (${deviceAddr[index]})"
+            } else {
+                i
+            }
+        })
     }
 
     private fun showPairDeviceDialog() {
@@ -1312,7 +1327,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         }
 
         val devices = ArrayList<BluetoothDevice>(adapter.bondedDevices)
-        val deviceNames = ArrayList<String>(devices.map {
+        var deviceNames = ArrayList<String>(devices.map {
             var result = it.name
             if (result == null) {
                 result = it.address
@@ -1322,6 +1337,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             }
             result
         })
+
+        deviceNames = augmentNonUniqueDiviceNames(deviceNames, devices.map {i -> i.address})
+
         val deviceAdapter =
             //ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, deviceNames)
             ArrayAdapter(
