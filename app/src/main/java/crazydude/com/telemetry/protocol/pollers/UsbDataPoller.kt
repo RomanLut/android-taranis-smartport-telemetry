@@ -114,13 +114,11 @@ class UsbDataPoller(
                 override fun onNewData(data: ByteArray?) {
                     data?.let {
                         logFile?.write(data)
-                        if (selectedProtocol != null) {
-                            data.forEach {
+                        data.forEach {
+                            if (selectedProtocol != null) {
                                 listener?.onTelemetryByte();
                                 selectedProtocol?.process(it.toUByte().toInt())
-                            }
-                        } else {
-                            data.forEach {
+                            } else {
                                 listener?.onTelemetryByte();
                                 protocolDetector.feedData(it.toUByte().toInt())
                             }
