@@ -191,6 +191,17 @@ public class CameraFragment extends BaseFragment {
 		public void onAttach(final UsbDevice device) {
 			showDeviceAttachedToast();
 			if (DEBUG) Log.v(TAG, "OnDeviceConnectListener#onAttach:");
+
+			AppCompatActivity activity = (AppCompatActivity) getActivity();
+			if (activity instanceof CameraFragmentListener) {
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						((CameraFragmentListener) activity).onUsbDeviceAttached();
+					}
+				}, 0);
+			}
+
 			if (!updateCameraDialog() && (mCameraView.hasSurface())) {
 				attachWasSkipped = false;
 				tryOpenUVCCamera(true);

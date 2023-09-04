@@ -2812,14 +2812,20 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         return true;
     }
 
+    override fun onUsbDeviceAttached() {
+    }
+
     override fun onCameraConnecting(){
+    }
+
+    override fun onCameraConnected(){
+        /*
+        message is not sent because cameraFragment is invisible and did not created surface yet
         var layout = preferenceManager.getMainLayout()
         if (layout == 0) {
             setNextLayout()
         }
-    }
-
-    override fun onCameraConnected(){
+        */
     }
 
 
