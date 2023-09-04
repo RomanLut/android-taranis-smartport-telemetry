@@ -306,6 +306,17 @@ public class CameraFragment extends BaseFragment {
 			mCameraClient.resize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
 			mCameraClient.setCompressionQuality(mCompressionQuality);
 			mCameraClient.connect();
+
+			AppCompatActivity activity = (AppCompatActivity) getActivity();
+			if (activity instanceof CameraFragmentListener) {
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						((CameraFragmentListener) activity).onCameraConnecting();
+					}
+				}, 0);
+			}
+
 		}
 	}
 
