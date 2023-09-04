@@ -96,7 +96,7 @@ abstract class DataDecoder(protected val listener: Listener) {
             ) {
             }
 
-            override fun onRCChannels(rcChannels:IntArray){
+            override fun onRCChannels(rcChannels: IntArray) {
 
             }
 
@@ -104,7 +104,7 @@ abstract class DataDecoder(protected val listener: Listener) {
             override fun onAirSpeedData(speed: Float) {
             }
 
-            override fun onStatusText(message:String) {
+            override fun onStatusText(message: String) {
             }
 
             override fun onDNSNRData(snr: Int) {
@@ -130,10 +130,13 @@ abstract class DataDecoder(protected val listener: Listener) {
 
             override fun onDBGGPSState(satellites: Int, gpsFix: Boolean) {
             }
+
             override fun onDBGGPSData(latitude: Double, longitude: Double) {
             }
+
             override fun onDBGGPSData(list: List<Position>, addToEnd: Boolean) {
             }
+
             override fun onDBGGPSEstErrorData(diff: Int) {
             }
 
@@ -144,11 +147,11 @@ abstract class DataDecoder(protected val listener: Listener) {
             }
 
             override fun onDecoderRestart() {
-        }
-
-            override fun onProtocolDetected( protocolName: String) {
             }
 
+            override fun onProtocolDetected(protocolName: String) {
+            }
+        }
     }
 
     open fun restart() {
