@@ -58,6 +58,7 @@ class BluetoothLeDataPoller(
                                 }
                             }
                         }
+                        listener?.commit();
                     }
                 }
 

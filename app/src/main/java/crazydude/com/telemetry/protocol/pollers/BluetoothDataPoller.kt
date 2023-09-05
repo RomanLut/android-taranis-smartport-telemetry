@@ -93,6 +93,7 @@ class BluetoothDataPoller(
                             selectedProtocol?.process(buffer[i].toUByte().toInt())
                         }
                     }
+                    listener?.commit();
                 }
             } catch (e: IOException) {
                 try {

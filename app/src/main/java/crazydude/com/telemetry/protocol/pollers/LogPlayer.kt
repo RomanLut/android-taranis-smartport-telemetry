@@ -288,6 +288,8 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
             originalListener.onGPSData(outDecodedCoordinates, addToEnd)
             this.expireStatusText(outDecodedCoordinates.size)
         }
+
+        originalListener?.commit();
     }
 
     fun stop() {
@@ -515,6 +517,9 @@ class LogPlayer(val originalListener: DataDecoder.Listener) : DataDecoder.Listen
     }
 
     override fun onProtocolDetected( protocolName: String) {
+    }
+
+    override fun commit() {
     }
 
     override fun onFlyModeData(

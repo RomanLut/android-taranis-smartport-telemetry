@@ -347,7 +347,9 @@ class OtxCsvLogger : DataDecoder.Listener {
     }
 
     override fun onProtocolDetected( protocolName: String) {
+    }
 
+    override fun commit() {
     }
 
 }

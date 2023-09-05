@@ -123,6 +123,7 @@ class UsbDataPoller(
                                 protocolDetector.feedData(it.toUByte().toInt())
                             }
                         }
+                        listener?.commit();
                     }
                 }
             })

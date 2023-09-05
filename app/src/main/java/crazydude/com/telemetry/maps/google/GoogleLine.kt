@@ -4,7 +4,7 @@ import com.google.android.gms.maps.model.Polyline
 import crazydude.com.telemetry.maps.MapLine
 import crazydude.com.telemetry.maps.Position
 
-class GoogleLine(private val polyline: Polyline) : MapLine {
+class GoogleLine(private val polyline: Polyline) : MapLine() {
 
 
     override val size: Int
@@ -31,6 +31,7 @@ class GoogleLine(private val polyline: Polyline) : MapLine {
     }
 
     override fun clear() {
+        spoints.clear()
         val points = polyline.points
         points.clear()
         polyline.points = points

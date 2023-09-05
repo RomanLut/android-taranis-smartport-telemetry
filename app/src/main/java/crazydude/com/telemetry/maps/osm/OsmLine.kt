@@ -5,7 +5,7 @@ import crazydude.com.telemetry.maps.Position
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Polyline
 
-class OsmLine(private val mapView: MapView) : MapLine {
+class OsmLine(private val mapView: MapView) : MapLine() {
 
     private val line = Polyline(mapView)
 
@@ -28,6 +28,7 @@ class OsmLine(private val mapView: MapView) : MapLine {
     }
 
     override fun clear() {
+        spoints.clear()
         line.actualPoints.clear()
         mapView.invalidate()
     }
