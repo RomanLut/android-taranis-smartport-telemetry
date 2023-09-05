@@ -1156,12 +1156,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
         deviceNames = augmentNonUniqueDiviceNames(deviceNames, devices.map { i-> i.address })
 
-        val deviceAdapter =
-            //ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, deviceNames)
-            ArrayAdapter(
-                this,
-                android.R.layout.simple_list_item_1,
-                deviceNames.mapIndexed { index, i ->
+        var deviceNames1 = deviceNames.mapIndexed { index, i ->
                     if ( devices[index].address == lastSelectedBluetoothDeviceAddress ) {
                         val boldOption = SpannableString(i)
                         boldOption.setSpan(StyleSpan(Typeface.BOLD), 0, i.length, 0)
@@ -1169,14 +1164,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                     } else {
                         i
                     }
-                })
-        val callback = BluetoothAdapter.LeScanCallback { bluetoothDevice, i, bytes ->
-            if (!devices.contains(bluetoothDevice) && bluetoothDevice.name != null) {
-                devices.add(bluetoothDevice)
-                deviceNames.add(bluetoothDevice.name)
-                deviceAdapter.notifyDataSetChanged()
-            }
-        }
+        }.toMutableList()
+
+        val deviceAdapter = ArrayAdapter( this, android.R.layout.simple_list_item_1, deviceNames1)
 
         var dialog = AlertDialog.Builder(this).setOnDismissListener {
         }.setAdapter(deviceAdapter) { _, i ->
@@ -1334,12 +1324,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
         deviceNames = augmentNonUniqueDiviceNames(deviceNames, devices.map {i -> i.address})
 
-        val deviceAdapter =
-            //ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, deviceNames)
-            ArrayAdapter(
-                this,
-                android.R.layout.simple_list_item_1,
-                deviceNames.mapIndexed { index, i ->
+        var deviceNames1 = deviceNames.mapIndexed { index, i ->
                     if ( devices[index].address == lastSelectedBLEDeviceAddress ) {
                         val boldOption = SpannableString(i)
                         boldOption.setSpan(StyleSpan(Typeface.BOLD), 0, i.length, 0)
@@ -1347,12 +1332,45 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                     } else {
                         i
                     }
-                })
+        }.toMutableList()
+
+        val deviceAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, deviceNames1)
+
+        var scrolled = false;
+        var dialog: AlertDialog? = null;
 
         val callback = BluetoothAdapter.LeScanCallback { bluetoothDevice, i, bytes ->
             if (!devices.contains(bluetoothDevice) && bluetoothDevice.name != null) {
                 devices.add(bluetoothDevice)
-                deviceNames.add(bluetoothDevice.name)
+                var name1 = bluetoothDevice.name
+                if ( deviceNames.indexOf( name1) >= 0 ) {
+                    name1 = "${bluetoothDevice.name} (${bluetoothDevice.address})"
+                }
+                if ( lastSelectedBLEDeviceAddress == bluetoothDevice.address) {
+                    val boldOption = SpannableString(name1)
+                    boldOption.setSpan(StyleSpan(Typeface.BOLD), 0, name1.length, 0)
+                    deviceNames1.add(boldOption)
+
+                    if ( dialog is AlertDialog && scrolled) {
+                        runOnUiThread {
+                            var index = devices.indexOfFirst {i -> i.address == lastSelectedBLEDeviceAddress}
+                            if ( index != -1) {
+                                val alertDialog = dialog as AlertDialog
+                                if ( alertDialog != null ) {
+                                    val centerY =
+                                        alertDialog.listView.height / 2 // Calculate the center position vertically
+                                    alertDialog.listView.smoothScrollToPositionFromTop(
+                                        index,
+                                        centerY
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                else {
+                    deviceNames1.add(name1)
+                }
                 deviceAdapter.notifyDataSetChanged()
             }
         }
@@ -1361,7 +1379,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             adapter.startLeScan(callback)
         }
 
-        var dialog = AlertDialog.Builder(this).setOnDismissListener {
+        dialog = AlertDialog.Builder(this).setOnDismissListener {
             if (bleCheck()) {
                 adapter.stopLeScan(callback)
             }
@@ -1383,6 +1401,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 val centerY = alertDialog.listView.height / 2 // Calculate the center position vertically
                 alertDialog.listView.smoothScrollToPositionFromTop(index, centerY)
     }
+            scrolled = true;
         }
 
         this.showDialog(dialog)
