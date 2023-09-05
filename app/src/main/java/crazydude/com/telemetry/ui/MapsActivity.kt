@@ -204,8 +204,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 if (it.isConnected()) {
                     switchToConnectedState()
                     polyLine?.submitPoints(it.points)
-                    dbgPolyLine?.addPoints(it.dbgPoints)
-                    limitDbgRouteLinePoints();
+                    dbgPolyLine?.submitPoints(it.dbgPoints)
                 }
             }
         }
@@ -492,8 +491,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         dbgPolyLine = map?.addPolyline(Color.BLACK)
         var p = dataService?.dbgPoints;
         if (  p!= null ) {
-            dbgPolyLine?.addPoints(p)
-            limitDbgRouteLinePoints()
+            dbgPolyLine?.submitPoints(p)
         }
         polyLine = map?.addPolyline(preferenceManager.getRouteColor())
         p = dataService?.points;
@@ -532,8 +530,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             dbgPolyLine = map?.addPolyline(Color.BLACK)
             var p = dataService?.dbgPoints;
             if  (p != null ) {
-                dbgPolyLine?.addPoints(p)
-                limitDbgRouteLinePoints()
+                dbgPolyLine?.submitPoints(p)
             }
             polyLine = map?.addPolyline(preferenceManager.getRouteColor())
             p = dataService?.points;
@@ -2232,8 +2229,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             if (Position(latitude, longitude) != dbgLastGPS) {
                 dbgLastGPS = Position(latitude, longitude)
                 if (dbgHasGPSFix) {
-                    dbgPolyLine?.addPoints(listOf(dbgLastGPS))
-                    limitDbgRouteLinePoints()
+                    dbgPolyLine?.submitPoints(listOf(dbgLastGPS))
                 }
             }
         }
@@ -2247,9 +2243,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 }
 
                 if ( list.size >= 2) {
-                    dbgPolyLine?.addPoints(list)
-                    dbgPolyLine?.removeAt(dbgPolyLine?.size!! - 1)
-                    limitDbgRouteLinePoints()
+                    dbgPolyLine?.submitPoints(list.dropLast(1))
 
                     dbgLastGPS = Position(list[list.size - 2].lat, list[list.size - 2].lon)
                 }
@@ -2292,6 +2286,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
     override fun commit() {
         commitRouteLinePoints()
+        commitDbgRouteLinePoints()
     }
 
     override fun onGPSData(list: List<Position>, addToEnd: Boolean) {
@@ -2598,14 +2593,12 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         polyLine?.commitPoints(maxCount)
         }
 
-    fun limitDbgRouteLinePoints() {
-        val maxCount = preferenceManager.getMaxRoutePoints()
-
-        if ( maxCount > 0) {
-            while (dbgPolyLine?.size ?: 0 > maxCount) {
-                dbgPolyLine?.removeAt(0)
-            }
+    fun commitDbgRouteLinePoints() {
+        var maxCount = preferenceManager.getMaxRoutePoints()
+        if ( maxCount < 0) {
+            maxCount = 10000
         }
+        dbgPolyLine?.commitPoints(maxCount)
     }
 
     fun showRenameLogDialog() {
