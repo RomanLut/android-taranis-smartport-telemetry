@@ -18,7 +18,8 @@ class FrSkySportProtocol : Protocol {
 
     companion object {
         enum class State {
-            IDLE, DATA, XOR
+            IDLE, DATA, XOR,
+            MP_ENVELOPE_HEADER2, MP_ENVELOPE_TYPE, MP_ENVELOPE_LENGTH, MP_ENVELOPE_DATA
         }
 
         const val SPORT_PACKET_SIZE = 0x09
@@ -84,6 +85,12 @@ class FrSkySportProtocol : Protocol {
         const val SPORT_DATA_ID_CURRENT_SENSOR = 0x0028 //current consumption
         const val SPORT_DATA_ID_VARIO_SENSOR = 0x0030 //vspeed m/s
         const val SPORT_DATA_ID_VFAS_SENSOR = 0x0039 //battery voltage
+
+        const val MP_ENVELOPE_DATA_HEADER1 = 0x4d //multiprotocol module header M
+        const val MP_ENVELOPE_DATA_HEADER2 = 0x50 //multiprotocol module header P
+        const val MP_ENVELOPE_DATA_TYPE_FRSKY = 0x02 //multiprotocol module header type: frsky packet
+        const val MP_ENVELOPE_DATA_LENGTH = 0x9 //multiprotocol module header packet length
+
         private val TAG: String = "FrSky Protocol"
     }
 
@@ -92,8 +99,11 @@ class FrSkySportProtocol : Protocol {
             Companion.State.IDLE -> {
                 if (data == SPORT_START_BYTE) {
                     state = Companion.State.DATA
+                } else if (data == MP_ENVELOPE_DATA_HEADER1) {
+                    state = Companion.State.MP_ENVELOPE_HEADER2
                 }
             }
+
             Companion.State.DATA -> {
                 if (data == SPORT_DATA_STUFF) {
                     state = Companion.State.XOR
@@ -103,376 +113,425 @@ class FrSkySportProtocol : Protocol {
                     buffer[bufferIndex++] = data
                 }
             }
+
             Companion.State.XOR -> {
                 buffer[bufferIndex++] = data xor SPORT_STUFF_MASK
                 state = Companion.State.DATA
+            }
+
+            Companion.State.MP_ENVELOPE_HEADER2 -> {
+                if ( data == MP_ENVELOPE_DATA_HEADER2 ) {
+                    bufferIndex = 0
+                    state = Companion.State.MP_ENVELOPE_TYPE
+                } else {
+                    state = Companion.State.IDLE
+                }
+            }
+
+            Companion.State.MP_ENVELOPE_TYPE -> {
+                if ( data == MP_ENVELOPE_DATA_TYPE_FRSKY ) {
+                    state = Companion.State.MP_ENVELOPE_LENGTH
+                } else {
+                    state = Companion.State.IDLE
+                }
+            }
+
+            Companion.State.MP_ENVELOPE_LENGTH -> {
+                if ( data == MP_ENVELOPE_DATA_LENGTH ) {
+                    state = Companion.State.MP_ENVELOPE_DATA
+                } else {
+                    state = Companion.State.IDLE
+                }
+            }
+
+            Companion.State.MP_ENVELOPE_DATA -> {
+                buffer[bufferIndex++] = data
             }
         }
 
         if (bufferIndex == SPORT_PACKET_SIZE) {
             state = Companion.State.IDLE
             bufferIndex = 0
-            val byteBuffer = ByteBuffer.wrap(buffer.foldIndexed(ByteArray(buffer.size)) { i, a, v ->
-                a.apply {
-                    set(
-                        i,
-                        v.toByte()
-                    )
-                }
-            }).order(ByteOrder.LITTLE_ENDIAN)
-            val sensorType = byteBuffer.get()
-            val packetType = byteBuffer.get()
-            if (packetType.toInt() == SPORT_DATA_START) {
-                val dataType = byteBuffer.short.toInt() and 0xffff
-                val rawData = byteBuffer.int
-                when (dataType.toInt()) {
-                    SPORT_FUEL_SENSOR -> {
-                        //Log.d(TAG, "Fuel: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                FUEL,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_GPS_SENSOR -> {
-                        //Log.d(TAG, "GPS: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                GPS,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_VFAS_SENSOR -> {
-                        //Log.d(TAG, "VBAT: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                VBAT_OR_CELL,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_CELL_SENSOR -> {
-                        //Log.d(TAG, "Cell voltage: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                CELL_VOLTAGE,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_CURRENT_SENSOR -> {
-                        //Log.d(TAG, "Current: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                CURRENT,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_HEADING_SENSOR -> {
-                        //Log.d(TAG, "Heading: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                HEADING,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_RSSI_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                RSSI,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_FLYMODE_SENSOR -> {
-                        //Log.d(TAG, "Fly mode: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                FLYMODE,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_GPS_STATE_SENSOR -> {
-                        //Log.d(TAG, "GPS State: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                GPS_STATE,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_VSPEED_SENSOR -> {
-                        //Log.d(TAG, "VSpeed: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                VSPEED,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_GALT_SENSOR -> {
-                        //Log.d(TAG, "GAlt: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                GPS_ALTITUDE,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_GSPEED_SENSOR -> {
-                        //Log.d(TAG, "GSpeed: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                GSPEED,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_DISTANCE_SENSOR -> {
-                        //Log.d(TAG, "Distance: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                DISTANCE,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_ALT_SENSOR -> {
-                        //Log.d(TAG, "Altitutde: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                ALTITUDE,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_PITCH_SENSOR -> {
-                        //Log.d(TAG, "Pitch: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                PITCH,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_ROLL_SENSOR -> {
-                        //Log.d(TAG, "Roll: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                ROLL,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_PITCH_SENSOR_BETAFLIGHT -> {
-                        //Log.d(TAG, "Pitch: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                PITCH,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_ROLL_SENSOR_BETAFLIGHT -> {
-                        //Log.d(TAG, "Roll: $rawData")
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(
-                                ROLL,
-                                rawData
-                            )
-                        )
-                    }
-                    SPORT_AIRSPEED_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(ASPEED, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_ALT_BP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(GPS_ALTITUDE, rawData) //gps altitude integer part
-                        )
-                    }
-                    SPORT_DATA_ID_TEMP1_SENSOR -> {
 
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(FLYMODE, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_FUEL_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(FUEL, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_TEMP2_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(GPS_STATE_ARDU, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_ALT_AP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_ALT_AP, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_BARO_ALT_BP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_ALT_BP, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_SPEED_BP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_SPEED_BP, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_LONG_BP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_LONG_BP, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_LAT_BP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_LAT_BP, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_COURS_BP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_COURS_BP, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_SPEED_AP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_SPEED_AP, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_LONG_AP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_LONG_AP, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_LAT_AP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_LAT_AP, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_BARO_ALT_AP_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_BARO_ALT_AP, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_LONG_EW_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_LONG_EW, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_GPS_LAT_NS_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_GPS_LAT_NS, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_ACC_X -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_ACC_X_1000, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_ACC_Y -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_ACC_Y_1000, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_ACC_Z-> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_ACC_Z_1000, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_ACC_X_BETAFLIGHT -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_ACC_X_100, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_ACC_Y_BETAFLIGHT -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_ACC_Y_100, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_ACC_Z_BETAFLIGHT-> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(DATA_ID_ACC_Z_100, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_CURRENT_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(CURRENT, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_VARIO_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(VSPEED, rawData)
-                        )
-                    }
-                    SPORT_DATA_ID_VFAS_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(VBAT, rawData)
-                        )
-                    }
-                    SPORT_RxBt_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(RxBt, rawData)
-                        )
-                    }
-                    SPORT_ARDU_TEXT_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(ARDU_TEXT, rawData)
-                        )
-                    }
-                    SPORT_ARDU_ATTITUDE_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(ARDU_ATTITUDE, rawData)
-                        )
-                    }
-                    SPORT_ARDU_VEL_YAW_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(ARDU_VEL_YAW, rawData)
-                        )
-                    }
-                    SPORT_ARDU_AP_STATUS_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(ARDU_AP_STATUS, rawData)
-                        )
-                    }
-                    SPORT_ARDU_GPS_STATUS_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(ARDU_GPS_STATUS, rawData)
-                        )
-                    }
-                    SPORT_ARDU_HOME_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(ARDU_HOME, rawData)
-                        )
-                    }
-                    SPORT_ARDU_BATT_2_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(ARDU_BATT_2, rawData)
-                        )
-                    }
-                    SPORT_ARDU_BATT_1_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(ARDU_BATT_1, rawData)
-                        )
-                    }
-                    SPORT_ARDU_PARAM_SENSOR -> {
-                        dataDecoder.decodeData(
-                            Protocol.Companion.TelemetryData(ARDU_PARAM, rawData)
-                        )
-                    }
-                    else -> {
-                        //Log.d(TAG, "Unknown packet Datatype 0x" + Integer.toHexString(dataType) +" " + buffer.contentToString())
+            if ( this.checksumIsValud() ) {
+                val byteBuffer =
+                    ByteBuffer.wrap(buffer.foldIndexed(ByteArray(buffer.size)) { i, a, v ->
+                        a.apply {
+                            set(
+                                i,
+                                v.toByte()
+                            )
+                        }
+                    }).order(ByteOrder.LITTLE_ENDIAN)
+                val sensorType = byteBuffer.get()
+                val packetType = byteBuffer.get()
+                if (packetType.toInt() == SPORT_DATA_START) {
+                    val dataType = byteBuffer.short.toInt() and 0xffff
+                    val rawData = byteBuffer.int
+                    when (dataType.toInt()) {
+                        SPORT_FUEL_SENSOR -> {
+                            //Log.d(TAG, "Fuel: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    FUEL,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_GPS_SENSOR -> {
+                            //Log.d(TAG, "GPS: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    GPS,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_VFAS_SENSOR -> {
+                            //Log.d(TAG, "VBAT: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    VBAT_OR_CELL,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_CELL_SENSOR -> {
+                            //Log.d(TAG, "Cell voltage: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    CELL_VOLTAGE,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_CURRENT_SENSOR -> {
+                            //Log.d(TAG, "Current: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    CURRENT,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_HEADING_SENSOR -> {
+                            //Log.d(TAG, "Heading: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    HEADING,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_RSSI_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    RSSI,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_FLYMODE_SENSOR -> {
+                            //Log.d(TAG, "Fly mode: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    FLYMODE,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_GPS_STATE_SENSOR -> {
+                            //Log.d(TAG, "GPS State: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    GPS_STATE,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_VSPEED_SENSOR -> {
+                            //Log.d(TAG, "VSpeed: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    VSPEED,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_GALT_SENSOR -> {
+                            //Log.d(TAG, "GAlt: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    GPS_ALTITUDE,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_GSPEED_SENSOR -> {
+                            //Log.d(TAG, "GSpeed: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    GSPEED,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_DISTANCE_SENSOR -> {
+                            //Log.d(TAG, "Distance: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    DISTANCE,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_ALT_SENSOR -> {
+                            //Log.d(TAG, "Altitutde: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    ALTITUDE,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_PITCH_SENSOR -> {
+                            //Log.d(TAG, "Pitch: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    PITCH,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_ROLL_SENSOR -> {
+                            //Log.d(TAG, "Roll: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    ROLL,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_PITCH_SENSOR_BETAFLIGHT -> {
+                            //Log.d(TAG, "Pitch: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    PITCH,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_ROLL_SENSOR_BETAFLIGHT -> {
+                            //Log.d(TAG, "Roll: $rawData")
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(
+                                    ROLL,
+                                    rawData
+                                )
+                            )
+                        }
+                        SPORT_AIRSPEED_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(ASPEED, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_ALT_BP_SENSOR -> {
+                            dataDecoder.decodeData(
+                            Protocol.Companion.TelemetryData(GPS_ALTITUDE, rawData) //gps altitude integer part
+                            )
+                        }
+                        SPORT_DATA_ID_TEMP1_SENSOR -> {
+
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(FLYMODE, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_FUEL_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(FUEL, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_TEMP2_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(GPS_STATE_ARDU, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_ALT_AP_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_ALT_AP, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_BARO_ALT_BP_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_ALT_BP, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_SPEED_BP_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_SPEED_BP, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_LONG_BP_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_LONG_BP, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_LAT_BP_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_LAT_BP, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_COURS_BP_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_COURS_BP, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_SPEED_AP_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_SPEED_AP, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_LONG_AP_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_LONG_AP, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_LAT_AP_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_LAT_AP, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_BARO_ALT_AP_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_BARO_ALT_AP, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_LONG_EW_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_LONG_EW, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_GPS_LAT_NS_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_GPS_LAT_NS, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_ACC_X -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_ACC_X_1000, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_ACC_Y -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_ACC_Y_1000, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_ACC_Z -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_ACC_Z_1000, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_ACC_X_BETAFLIGHT -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_ACC_X_100, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_ACC_Y_BETAFLIGHT -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_ACC_Y_100, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_ACC_Z_BETAFLIGHT -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(DATA_ID_ACC_Z_100, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_CURRENT_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(CURRENT, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_VARIO_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(VSPEED, rawData)
+                            )
+                        }
+                        SPORT_DATA_ID_VFAS_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(VBAT_OR_CELL, rawData)
+                            )
+                        }
+                        SPORT_RxBt_SENSOR -> {
+                            //RxBT is receiver power supply voltage, which may be 5V from BEC
+                            //can't really use it as battery voltage
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(RxBt, rawData)
+                            )
+                        }
+                        SPORT_ARDU_TEXT_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(ARDU_TEXT, rawData)
+                            )
+                        }
+                        SPORT_ARDU_ATTITUDE_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(ARDU_ATTITUDE, rawData)
+                            )
+                        }
+                        SPORT_ARDU_VEL_YAW_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(ARDU_VEL_YAW, rawData)
+                            )
+                        }
+                        SPORT_ARDU_AP_STATUS_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(ARDU_AP_STATUS, rawData)
+                            )
+                        }
+                        SPORT_ARDU_GPS_STATUS_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(ARDU_GPS_STATUS, rawData)
+                            )
+                        }
+                        SPORT_ARDU_HOME_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(ARDU_HOME, rawData)
+                            )
+                        }
+                        SPORT_ARDU_BATT_2_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(ARDU_BATT_2, rawData)
+                            )
+                        }
+                        SPORT_ARDU_BATT_1_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(ARDU_BATT_1, rawData)
+                            )
+                        }
+                        SPORT_ARDU_PARAM_SENSOR -> {
+                            dataDecoder.decodeData(
+                                Protocol.Companion.TelemetryData(ARDU_PARAM, rawData)
+                            )
+                        }
+                        else -> {
+                            //Log.d(TAG, "Unknown packet Datatype 0x" + Integer.toHexString(dataType) +" " + buffer.contentToString())
+                        }
                     }
                 }
             }
         }
+    }
+
+    private fun checksumIsValud() : Boolean {
+        var checksum = 0;
+        for ( i in 1..8) {
+            checksum += buffer[i];
+        }
+
+        while (checksum > 0xFF) {
+            checksum = (checksum and  0xFF) + (checksum shr  8);
+        }
+
+        return checksum == 0xff;
     }
 }
