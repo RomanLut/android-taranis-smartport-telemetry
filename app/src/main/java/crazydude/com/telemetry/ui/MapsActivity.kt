@@ -85,6 +85,11 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             "OpenStreetMap (can be cached)",
             "OpenTopoMap (can be cached)"
         )
+
+        private const val CONNTYPE_NONE = 0
+        private const val CONNTYPE_BT = 1
+        private const val CONNTYPE_BLE = 2
+        private const val CONNTYPE_USB = 3
     }
 
     enum class RequestWritePermissionSequenceType {
@@ -191,6 +196,11 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     private var lastSelectedDataPooler = "";
     private var lastSelectedBluetoothDeviceAddress = "";
     private var lastSelectedBLEDeviceAddress = "";
+
+    private var reconnectionStartTime = 0L;
+    private var lastConnectionType = CONNTYPE_NONE;
+    private var lastBluetoothDevice: BluetoothDevice? = null;
+    private var reconnectOnFailure = false;
 
     private val serviceConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceDisconnected(p0: ComponentName?) {
@@ -992,6 +1002,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     }
 
     private fun connect() {
+        lastConnectionType = CONNTYPE_NONE;
         val showcaseView = MaterialShowcaseView.Builder(this)
             .renderOverNavigationBar()
             .setTarget(replayButton)
@@ -1460,11 +1471,34 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
 
     private fun connectToBluetoothDevice(device: BluetoothDevice, isBLE: Boolean) {
+        if ( isBLE ) {
+            lastConnectionType = CONNTYPE_BLE;
+        }
+        else {
+            lastConnectionType = CONNTYPE_BT;
+        }
+        reconnectionStartTime = 0;
+        reconnectOnFailure = false;
+
         startDataService()
         dataService?.let {
             connectButton.text = getString(R.string.connecting)
             connectButton.isEnabled = false
+            lastBluetoothDevice = device;
             it.connect(device, isBLE)
+        }
+    }
+
+    private fun reconnectToBluetoothDevice() {
+        startDataService()
+        dataService?.let {
+            connectButton.text = getString(R.string.reconnecting)
+            connectButton.isEnabled = false
+            if ( lastConnectionType == CONNTYPE_BLE) {
+                it.connect(lastBluetoothDevice as BluetoothDevice, true)
+            } else {
+                it.connect(lastBluetoothDevice as BluetoothDevice, false)
+            }
         }
     }
 
@@ -1472,6 +1506,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         port: UsbSerialPort,
         connection: UsbDeviceConnection
     ) {
+        lastConnectionType = CONNTYPE_USB;
         startDataService()
         dataService?.let {
             connectButton.text = getString(R.string.connecting)
@@ -2088,6 +2123,34 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
             if (preferenceManager.getConnectionVoiceMessagesEnabled()) {
                 soundPool!!.play(disconnectedSoundId, 1f, 1f, 0, 0, 1f)
             }
+
+            reconnectOnFailure = true;
+            tryReconnect()
+        }
+    }
+
+    fun tryReconnect() {
+        if (!preferenceManager.getReconnectionEnabled()) {
+            return;
+        }
+
+        runOnUiThread {
+            if ((lastConnectionType == CONNTYPE_BT) || (lastConnectionType == CONNTYPE_BLE)) {
+                if (reconnectionStartTime == 0L) {
+                    reconnectionStartTime = System.currentTimeMillis()
+                }
+
+                if ((System.currentTimeMillis() - reconnectionStartTime) < 21000) {
+                    AsyncTask.execute {
+                        Thread.sleep(5000)
+                        if (lastBluetoothDevice != null) {
+                            runOnUiThread {
+                                reconnectToBluetoothDevice()
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -2151,6 +2214,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         connectButton.setOnClickListener {
             connectButton.isEnabled = false
             connectButton.text = getString(R.string.disconnecting)
+            lastConnectionType = CONNTYPE_NONE; //reset last connection type to skip reconnection
             dataService?.disconnect()
         }
     }
@@ -2168,6 +2232,9 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 soundPool!!.play(connectionFailedSoundId, 1f, 1f, 0, 0, 1f)
             }
 
+            if ( reconnectOnFailure ) {
+                tryReconnect()
+            }
         }
     }
 
@@ -2373,6 +2440,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
 
     override fun onConnected() {
         runOnUiThread {
+            reconnectionStartTime = 0L;
             Toast.makeText(this, "Connected!", Toast.LENGTH_SHORT).show()
             switchToConnectedState()
             this.lastTraveledDistance = 0.0;

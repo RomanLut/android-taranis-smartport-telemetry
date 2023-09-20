@@ -26,6 +26,7 @@ class BluetoothLeDataPoller(
     private var connectedOnce = false
     private var failed = false;
     private var bluetoothGatt: BluetoothGatt?
+    private var destroyed = false;
 
     init {
         bluetoothGatt = device.connectGatt(context, false,
@@ -195,23 +196,25 @@ class BluetoothLeDataPoller(
                             }
                             AsyncTask.execute {
                                 Thread.sleep(10000)
-                                if (!serviceSelected) {
-                                    failed = true
-                                    notifyCharacteristicList.forEach {
-                                        val reg = gatt.setCharacteristicNotification(it, false)
-                                        if (reg) {
-                                            for (descriptor in it.getDescriptors()) {
-                                                descriptor.value =
-                                                    BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
-                                                gatt.writeDescriptor(descriptor)
+                                if ( !destroyed ){
+                                    if (!serviceSelected) {
+                                        failed = true
+                                        notifyCharacteristicList.forEach {
+                                            val reg = gatt.setCharacteristicNotification(it, false)
+                                            if (reg) {
+                                                for (descriptor in it.getDescriptors()) {
+                                                    descriptor.value =
+                                                        BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+                                                    gatt.writeDescriptor(descriptor)
+                                                }
                                             }
+                                            protocolDetectors.clear()
                                         }
-                                        protocolDetectors.clear()
+                                        gatt?.disconnect()
+                                        runOnMainThread(Runnable {
+                                            listener.onConnectionFailed()
+                                        })
                                     }
-                                    gatt?.disconnect()
-                                    runOnMainThread(Runnable {
-                                        listener.onConnectionFailed()
-                                    })
                                 }
                             }
                         }
@@ -226,6 +229,7 @@ class BluetoothLeDataPoller(
 
     fun closeConnection() {
         bluetoothGatt?.close()
+        destroyed = true;
 
         try {
             outputStream?.close()

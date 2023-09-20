@@ -33,6 +33,12 @@
             android:key="compression_quality"/>
 
     <SwitchPreference
+            android:title="Automatically reconnect lost Bluetooth connection"
+            android:summary="Try to reconnect if Bluetooth/BLE connection has failed"
+            android:defaultValue="true"
+            android:key="connection_reconnect"/>
+
+    <SwitchPreference
             android:title="Voice messages on conection status changes"
             android:summary="Play voice messages when connection status chages."
             android:defaultValue="true"
