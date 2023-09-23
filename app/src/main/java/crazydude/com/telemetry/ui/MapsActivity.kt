@@ -102,6 +102,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     private var connectedSoundId : Int = 0
     private var disconnectedSoundId : Int = 0
     private var connectionFailedSoundId : Int = 0
+    private var reconnectingSoundId : Int = 0
 
     private var marker: MapMarker? = null
     private var dbgPolyLine: MapLine? = null
@@ -232,6 +233,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         connectedSoundId = soundPool!!.load(this, R.raw.connected, 1)
         disconnectedSoundId = soundPool!!.load(this, R.raw.disconnected, 1)
         connectionFailedSoundId = soundPool!!.load(this, R.raw.connection_failed, 1)
+        reconnectingSoundId = soundPool!!.load(this, R.raw.reconnecting, 1)
 
         mapType = preferenceManager.getMapType()
         followMode = savedInstanceState?.getBoolean("follow_mode", true) ?: true
@@ -1490,16 +1492,25 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     }
 
     private fun reconnectToBluetoothDevice() {
+        if (
+            (lastBluetoothDevice != null) &&
+            ( (lastConnectionType == CONNTYPE_BT) || (lastConnectionType == CONNTYPE_BLE))
+        ) {
+            if ( preferenceManager.getConnectionVoiceMessagesEnabled()) {
+                soundPool!!.play(reconnectingSoundId, 1f, 1f, 0, 0, 1f)
+            }
+
         startDataService()
         dataService?.let {
             connectButton.text = getString(R.string.reconnecting)
             connectButton.isEnabled = false
             if ( lastConnectionType == CONNTYPE_BLE) {
                 it.connect(lastBluetoothDevice as BluetoothDevice, true)
-            } else {
+                } else if (lastConnectionType == CONNTYPE_BT) {
                 it.connect(lastBluetoothDevice as BluetoothDevice, false)
             }
         }
+    }
     }
 
     private fun connectToUSBDevice(
@@ -2143,7 +2154,6 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 if ((System.currentTimeMillis() - reconnectionStartTime) < 21000) {
                     AsyncTask.execute {
                         Thread.sleep(5000)
-                        if (lastBluetoothDevice != null) {
                             runOnUiThread {
                                 reconnectToBluetoothDevice()
                             }
@@ -2152,7 +2162,6 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
                 }
             }
         }
-    }
 
     private fun switchToReplayMode() {
         setFollowMode( true );
@@ -2162,6 +2171,7 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
         connectButton.visibility = View.GONE
         replayButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_close))
         replayButton.setOnClickListener {
+            lastConnectionType = CONNTYPE_NONE; //reset last connection type to skip reconnection
             switchToIdleState()
             replayFileString = null
         }
