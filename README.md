@@ -32,7 +32,7 @@ Multiple possibilities exits.
 - use Crossfire TX with bluetooth module
 - sniff telemetry from S.PORT pin and route to HC-06 / HM-10 module ( see instructions below )
 - since version 1.2: route telemetry to USB-C port of the radio ( System->USB-VCP->Telemetry Mirror ) and connect to the phone using OTG cable. Note that USB-C<->USB-C cable may not work; I had to use OTG adapter + cable.
-- install ELRS build with BLE telemetry output: https://github.com/ExpressLRS/ExpressLRS/pull/2018 
+- install ELRS build with BLE telemetry output: https://github.com/ExpressLRS/ExpressLRS/pull/2305
 - install ELRS build with Bluetooth telemetry output: https://github.com/ExpressLRS/ExpressLRS/pull/2101
 
 
