@@ -2381,8 +2381,10 @@ class MapsActivity : com.serenegiant.common.BaseActivity(), DataDecoder.Listener
     }
 
     override fun commit() {
+        runOnUiThread {
         commitRouteLinePoints()
         commitDbgRouteLinePoints()
+    }
     }
 
     override fun onGPSData(list: List<Position>, addToEnd: Boolean) {
