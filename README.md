@@ -26,7 +26,7 @@ I am contributing most bugsfixes and enchancements to Crazydude's repository. Bu
 - automatic reconnection (Bluetooth/BLE)
 - improved stability and bug fixes
 
-<sup>1</sup> *Channels are displayed with CRSF protocol if they are sent with telemetry. It works with this PR which allows to connect directly to Express LRS TX module:* https://github.com/ExpressLRS/ExpressLRS/pull/2018
+<sup>1</sup> *Channels are displayed with CRSF protocol if they are sent with telemetry. It works with this PR which allows to connect directly to Express LRS TX module:* https://github.com/ExpressLRS/ExpressLRS/pull/2731
 
 # Routing telemetry to the application
 
