@@ -10,7 +10,7 @@ This version contains support of ROTG01/ROTG02 video receivers with recording:
 
 Latest build is available in Releases: https://github.com/RomanLut/android-taranis-smartport-telemetry/releases
 
-I am contributing most bugsfixes and enchancements to Crasydude's repository. But due to significant differences in UI structure, some features are not merged or merged with delay:
+I am contributing most bugsfixes and enchancements to Crazydude's repository. But due to significant differences in UI structure and SDK versions, some features are not merged or merged with delay:
 - UVC video support, video recording (DVR)
 - sensors: Airspeed, Vertical speed, Altitude MSL, Throttle, Cell Voltage, Telemetry Rate, Distance to home, Travelled distance
 - CRSF link quality sensors 
