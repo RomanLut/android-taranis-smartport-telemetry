@@ -18,6 +18,8 @@ class CrsfProtocol : Protocol {
 
         // Device or sync byte:Length:Type:Payload:CRC
         private const val RADIO_ADDRESS = 0xEA
+        private const val CROSSFIRE_RX_ADDRESS = 0xEC;// R/C Receiver / Crossfire Rx
+        private const val CROSSFIRE_TX_ADDRESS = 0xEE;//  R/C Transmitter Module / Crossfire Tx
         private const val SYNC_BYTE = 0xC8
 
         private const val GPS_TYPE = 0x02
@@ -60,7 +62,12 @@ class CrsfProtocol : Protocol {
         // Scan the whole input buffer
         while (pos < buffer.size) {
             // look for start characters
-            if (buffer[pos] == RADIO_ADDRESS) {
+            if ((buffer[pos] == RADIO_ADDRESS) ||
+                (buffer[pos] == CROSSFIRE_RX_ADDRESS) ||
+                (buffer[pos] == CROSSFIRE_TX_ADDRESS) ||
+                (buffer[pos] == SYNC_BYTE)
+            )
+            {
                 startCharPos = pos
                 // is the input buffer big enough to include a length field for this start of packet
                 if (pos + 1 < buffer.size) {

@@ -23,7 +23,7 @@ android {
         minSdkVersion 17
         targetSdkVersion 28
         versionCode 28
-        versionName "hx1.6.1"
+        versionName "hx1.6.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
