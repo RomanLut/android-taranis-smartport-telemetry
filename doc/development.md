@@ -18,5 +18,8 @@ ndk.dir=C\:\\Users\\name\\AppData\\Local\\Android\\Sdk\\ndk\\16.1.4479499
 
 (replace path with your values).
 
-4) Open in Android Studio and build ( v4.1.1 was used )
+4) **This project requires older version Android Studio:**
+ 
+  **Android Studio 4.2.1 May 13, 2021**  https://developer.android.com/studio/archive
+   
 Do not upgrade Graddle plugin when recommended by Android Studio.
