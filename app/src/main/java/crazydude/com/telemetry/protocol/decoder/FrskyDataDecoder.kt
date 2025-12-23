@@ -128,10 +128,41 @@ class FrskyDataDecoder(listener: Listener) : DataDecoder(listener) {
             }
 
             Protocol.FLYMODE -> {
-                val modeA = data.data / 10000
+
+                //inav: 1 - RTH
+                //inav: 2 - ANGLE_HOLD
+                val modeG = (data.data / 1000000) % 10
+
+                //inav: 1 - autoland
+                //inav: 2 - turtle
+                //inav: 4 - send_to
+                //inav: 8 - poshold (airplane)
+                val modeF = (data.data / 100000) % 10
+
+                //inav: 1 - flaperon
+                //inav: 2 - autotune
+                //inav: 4 - failsafe
+                val modeA = (data.data / 10000) % 10
+
+                //inav: 1 - RTH
+                //inav: 2 - waypoint mission
+                //inav: 4 - headfree
+                //inav: 8 - course hold
                 val modeB = data.data / 1000 % 10
+
+                //inav: 1 - heading
+                //inav: 2 - althold
+                //inav: 4 - poshold (NOT airplane)
                 val modeC = data.data / 100 % 10
+
+                //inav: 1 - angle
+                //inav: 2 - horizon
+                //inav: 4 - manual
                 val modeD = data.data / 10 % 10
+
+                //inav: 1 - arming enabled
+                //inav: 2 - arming disabled
+                //inav: 4 - armed
                 val modeE = data.data % 10
 
                 val firstFlightMode: Companion.FlyMode
@@ -152,12 +183,26 @@ class FrskyDataDecoder(listener: Listener) : DataDecoder(listener) {
                     secondFlightMode = Companion.FlyMode.FAILSAFE
                 } else if (modeB and 1 == 1) {
                     secondFlightMode = Companion.FlyMode.RTH
+                } else if (modeG and 1 == 1) {
+                    secondFlightMode = Companion.FlyMode.RTH
                 } else if (modeD and 4 == 4) {
                     secondFlightMode = Companion.FlyMode.MANUAL
                 } else if (modeB and 2 == 2) {
                     secondFlightMode = Companion.FlyMode.WAYPOINT
                 } else if (modeB and 8 == 8) {
                     secondFlightMode = Companion.FlyMode.CRUISE
+                } else if (modeC and 4 == 4) {
+                    secondFlightMode = Companion.FlyMode.HOLD  //NOT airplane
+                } else if (modeF and 8 == 8) {
+                    secondFlightMode = Companion.FlyMode.HOLD  //airplane
+                } else if (modeA and 2 == 2) {
+                    secondFlightMode = Companion.FlyMode.AUTOTUNE
+                } else if (modeF and 1 == 1) {
+                    secondFlightMode = Companion.FlyMode.LANDING
+                } else if (modeF and 2 == 2) {
+                    secondFlightMode = Companion.FlyMode.TURTLE
+                } else if (modeF and 4 == 4) {
+                    secondFlightMode = Companion.FlyMode.GEO
                 } else {
                     secondFlightMode = null
                 }

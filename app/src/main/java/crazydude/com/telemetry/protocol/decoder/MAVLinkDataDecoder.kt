@@ -204,9 +204,11 @@ class MAVLinkDataDecoder(listener: Listener) : DataDecoder(listener) {
                             COPTER_MODE_STABILIZE -> flyMode = DataDecoder.Companion.FlyMode.STABILIZE  //can not decode Angle or Horizon, not enough data
                             COPTER_MODE_ALT_HOLD -> flyMode = DataDecoder.Companion.FlyMode.ALTHOLD
                             COPTER_MODE_POSHOLD -> flyMode = DataDecoder.Companion.FlyMode.HOLD
+                            COPTER_MODE_GUIDED -> flyMode = DataDecoder.Companion.FlyMode.GUIDED
                             COPTER_MODE_RTL -> flyMode = DataDecoder.Companion.FlyMode.RTH
                             COPTER_MODE_AUTO -> if ( isFailsafe ) flyMode = null else flyMode = DataDecoder.Companion.FlyMode.MISSION
                             COPTER_MODE_THROW -> flyMode = DataDecoder.Companion.FlyMode.TAKEOFF
+                            COPTER_MODE_LAND -> flyMode = DataDecoder.Companion.FlyMode.LANDING
                         }
                     }
                 }

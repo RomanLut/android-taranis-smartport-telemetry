@@ -43,10 +43,13 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
                 val value = data.data / 10f
                 listener.onCurrentData(value)
             }
+/*
             Protocol.GPS_ALTITUDE -> {
-                val gps_altitude = data.data - 1000.0f
-                listener.onAltitudeData(gps_altitude)
+                val gps_altitude = data.data
+                listener.onGPSAltitudeData(gps_altitude)
             }
+
+ */
             Protocol.GPS_LONGITUDE -> {
                 longitude = data.data / 10000000.toDouble()
                 newLongitude = true
@@ -63,6 +66,47 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
                 val heading = data.data / 100f
 //                listener.onHeadingData(heading)
             }
+/*
+TODO: recheck when pull reqests are merged
+-------------
+Fix CRSF telemetry corruption from PR #11025 #11189
+https://github.com/iNavFlight/inav/pull/11189
+
+
+CRSF_FRAMETYPE_BAROMETER_ALTITUDE = 0x09
+crsfBarometerAltitude()
+https://github.com/iNavFlight/inav/blob/e5bfe799c3d56fc95a7573b27bfec77ca8044249/src/main/telemetry/crsf.c#L295
+----------------
+
+CRSF Baro Altitude and Vario, AirSpeed (fixed conflicts from #11100) 
+https://github.com/iNavFlight/inav/pull/11168
+  
+
+CRSF_FRAMETYPE_BAROMETER_ALTITUDE_VARIO_SENSOR = 0x09
+crsfFrameBarometerAltitudeVarioSensor()
+https://github.com/iNavFlight/inav/blob/135456936834ab4129e6ed540038b2e88dcb3c44/src/main/telemetry/crsf.c#L285
+
+            Protocol.ALTITUDE -> {
+                var altitude = data.data.toUShort().toInt();
+
+                if (altitude == 0 ) {
+                    altitude = - 1000; // -1000 m = -10000 dm
+                } else if (altitude >= 0xffe)
+                {
+                    altitude = 32765;// 32765 m = (0x7ffe * 10 - 5) dm
+                } else if ( (altitude and 0x8000) == 0x8000)
+                {
+                    altitude = altitude and 0x7fff;  //in m
+                }
+                else
+                {
+                    altitude = (altitude - 10000) / 10; //dm to m
+                }
+
+                listener.onAltitudeData(altitude.toFloat())
+            }
+*/
+
             Protocol.ALTITUDE -> {
                 val altitude = data.data - 1000f
                 listener.onAltitudeData(altitude)
@@ -114,7 +158,10 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
                         "RTH" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.RTH, null)
                         }
-                        "HOLD" -> {
+                        "WRTH" -> {
+                            listener.onFlyModeData(true, false, Companion.FlyMode.WAYPOINT, Companion.FlyMode.RTH)
+                        }
+                        "HOLD", "LOTR" -> {
                             listener.onFlyModeData(true, false, Companion.FlyMode.LOITER, null)
                         }
                         "HRST" -> {
@@ -143,6 +190,18 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
                         }
                         "!ERR" -> {
                             listener.onFlyModeData(false, false, Companion.FlyMode.ERROR, null)
+                        }
+                        "LAND" -> {
+                            listener.onFlyModeData(false, false, Companion.FlyMode.LANDING, null)
+                        }
+                        "GEO" -> {
+                            listener.onFlyModeData(false, false, Companion.FlyMode.GEO, null)
+                        }
+                        "TURT" -> {
+                            listener.onFlyModeData(false, false, Companion.FlyMode.TURTLE, null)
+                        }
+                        "ANGH" -> {
+                            listener.onFlyModeData(false, false, Companion.FlyMode.ANGLE_HOLD, null)
                         }
                         "OK" -> {
                             listener.onFlyModeData(false, false, Companion.FlyMode.ACRO, null)
@@ -197,6 +256,9 @@ class CrsfDataDecoder(listener: Listener) : DataDecoder(listener) {
             }
             Protocol.DISTANCE -> {
                 listener.onDistanceData(data.data)
+            }
+            Protocol.ASPEED -> {
+                listener.onAirSpeedData(data.data / 0.036f)  //cm/s to km/h
             }
             else -> {
                 decoded = false

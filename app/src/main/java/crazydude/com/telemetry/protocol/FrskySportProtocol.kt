@@ -48,6 +48,11 @@ class FrSkySportProtocol : Protocol {
         const val SPORT_PITCH_SENSOR_BETAFLIGHT = 0x05230
         const val SPORT_ROLL_SENSOR_BETAFLIGHT = 0x05240
         const val SPORT_AIRSPEED_SENSOR = 0x0A00
+        const val SPORT_FPV_SENSOR = 0x0450  //inav gps.groundcourse, deg*10. We ignore this and use HEADING instead.
+        const val SPORT_AZYMUTH_SENSOR = 0x0460  //inav GPS_directionToHome, deg*10. We ignore this.
+        const val SPORT_FLYMODE2_SENSOR = 0x0470  //inav 8.0 new flight modes sensor, sent without frsky_use_legacy_gps_mode_sensor_ids
+        const val SPORT_GPS_STATE2_SENSOR = 0x0480  //inav 8.0 new gps state, sent without frsky_use_legacy_gps_mode_sensor_ids
+
         //ardupilot passthrough sensors
         const val SPORT_ARDU_TEXT_SENSOR = 0x5000 // status text (dynamic)
         const val SPORT_ARDU_ATTITUDE_SENSOR = 0x5006 //Attitude and range (dynamic)
@@ -79,7 +84,7 @@ class FrSkySportProtocol : Protocol {
         const val SPORT_DATA_ID_ACC_X = 0x0024 //accelerometer value x
         const val SPORT_DATA_ID_ACC_Y = 0x0025 //accelerometer value y
         const val SPORT_DATA_ID_ACC_Z = 0x0026 //accelerometer value z
-        const val SPORT_DATA_ID_ACC_X_BETAFLIGHT = 0x0700 //accelerometer value x betaflight custom
+        const val SPORT_DATA_ID_ACC_X_BETAFLIGHT = 0x0700 //accelerometer value x betaflight custom, olso inav if frsky_pitch_roll=off (default)
         const val SPORT_DATA_ID_ACC_Y_BETAFLIGHT = 0x0710 //accelerometer value y betaflight custom
         const val SPORT_DATA_ID_ACC_Z_BETAFLIGHT = 0x0720 //accelerometer value z betaflight custom
         const val SPORT_DATA_ID_CURRENT_SENSOR = 0x0028 //current consumption
@@ -231,7 +236,7 @@ class FrSkySportProtocol : Protocol {
                                 )
                             )
                         }
-                        SPORT_FLYMODE_SENSOR -> {
+                        SPORT_FLYMODE_SENSOR, SPORT_FLYMODE2_SENSOR -> {
                             //Log.d(TAG, "Fly mode: $rawData")
                             dataDecoder.decodeData(
                                 Protocol.Companion.TelemetryData(
@@ -240,7 +245,7 @@ class FrSkySportProtocol : Protocol {
                                 )
                             )
                         }
-                        SPORT_GPS_STATE_SENSOR -> {
+                        SPORT_GPS_STATE_SENSOR, SPORT_GPS_STATE2_SENSOR -> {
                             //Log.d(TAG, "GPS State: $rawData")
                             dataDecoder.decodeData(
                                 Protocol.Companion.TelemetryData(

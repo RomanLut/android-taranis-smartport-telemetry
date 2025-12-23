@@ -25,6 +25,8 @@ class CrsfProtocol : Protocol {
         private const val GPS_TYPE = 0x02
         private const val VARIO_TYPE = 0x07
         private const val BATTERY_TYPE = 0x08
+        private const val BAROALT_SENSOR = 0x09
+        private const val AIRSPEED_SENSOR = 0x0A
         private const val LINK_STATS = 0x14
         private const val ATTITUDE_TYPE = 0x1E
         private const val FLIGHT_MODE = 0x21
@@ -39,6 +41,8 @@ class CrsfProtocol : Protocol {
         private const val MIN_FLIGHT_MODE_PACKET_LEN = 4
         private const val GPS_PACKET_LEN = 16
         private const val ATTITUDE_PACKET_LEN = 7
+        private const val AIRSPEED_PACKET_LEN = 3
+        private const val BAROALT_PACKET_LEN = 3
         private const val BATTERY_PACKET_LEN = 9
         private const val VARIO_PACKET_LEN = 3
         private const val LINK_STATS_PACKET_LEN = 11
@@ -138,7 +142,7 @@ class CrsfProtocol : Protocol {
                         val longitude = data.int
                         val groundSpeed = data.short
                         val heading = data.short
-                        val altitude = data.short
+                        val altitude = data.short  //alt + 1000m
                         val satellites = data.get()
 
                         dataDecoder.decodeData( Protocol.Companion.TelemetryData( GPS_SATELLITES, satellites.toInt()))
@@ -232,6 +236,18 @@ class CrsfProtocol : Protocol {
                             bitsMerged -= 11;
                             ch++;
                         }
+                    }
+                }
+                AIRSPEED_SENSOR.toByte() -> {
+                    if (inputData.size == AIRSPEED_PACKET_LEN) {
+                        val airspeed = data.short  //cm/s
+                        dataDecoder.decodeData(Protocol.Companion.TelemetryData(ASPEED, airspeed.toInt()))
+                    }
+                }
+                BAROALT_SENSOR.toByte() -> {
+                    if (inputData.size == BAROALT_PACKET_LEN) {
+                        val altitude = data.short  //encoded into int16
+                        dataDecoder.decodeData(Protocol.Companion.TelemetryData(ALTITUDE, altitude.toInt()))
                     }
                 }
             }
