@@ -4,20 +4,22 @@ This is fork of CrazyDude's excellent application https://github.com/CrazyDude19
 
 ![](doc/screenshot.jpg) 
 
-This version contains support of ROTG01/ROTG02 video receivers with recording:
+This version contains support of ROTG01/ROTG02 video receivers with recording and new features:
 
 ![](doc/uvc_video_tx16s.jpg) 
 
 Latest build is available in Releases: https://github.com/RomanLut/android-taranis-smartport-telemetry/releases
 
-I am contributing most bugsfixes and enchancements to Crazydude's repository. But due to significant differences in UI structure and SDK versions, some features are not merged or merged with delay:
+This fork is not available on Google Play.
+
+This fork contains additional features:
 - UVC video support, video recording (DVR)
 - sensors: Airspeed, Vertical speed, Altitude MSL, Throttle, Cell Voltage, Telemetry Rate, Distance to home, Travelled distance
 - CRSF link quality sensors 
 - RC Channels display (8ch for Mavlink v1, 18ch for Mavlink v2, 16 channels for CRSF<sup>1</sup>)
 - better support for CRSF and LTM telemetry
 - connection status voice messages
-- USB VCP cable connection to radios
+- support for USB VCP cable connection to RC controller
 - topological map
 - GPX export
 - KML export
@@ -41,8 +43,8 @@ Multiple possibilities exits.
 - install ELRS build with Bluetooth telemetry output: https://github.com/ExpressLRS/ExpressLRS/pull/2101
 
 
-Below is original Readme.md:
-
+----
+# Below is original Readme.md:
 
 # Android Taranis SmartPort Telemetry Viewer
 
